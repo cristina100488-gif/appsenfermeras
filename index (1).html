@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gráfica de enfermería y balance hídrico</title>
+<style id="css">
+:root{
+  --temp:#d62828; --fc:#1d4ed8; --ta:#15803d; --fr:#111111;
+  --bg:#f6f7f9; --card:#ffffff; --line:#e3e6ea; --grid:#eef0f3; --grid2:#d9dde3;
+  --text:#1f2933; --muted:#66727f; --accent:#0f766e; --warn:#b45309;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.4}
+header.top{background:#fff;border-bottom:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header.top h1{font-size:19px;margin:0;font-weight:650}
+#status{font-size:12.5px;color:var(--muted)}
+#status.ok::before{content:"● ";color:#16a34a}
+#status.local::before{content:"● ";color:var(--warn)}
+main{max-width:1200px;margin:0 auto;padding:18px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{font-size:16px;margin:0 0 12px;font-weight:650}
+.card h3{font-size:14px;margin:14px 0 8px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.grid{display:grid;gap:10px}
+.pac{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+label{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted);gap:4px}
+input,select,textarea{font:inherit;color:var(--text);padding:7px 9px;border:1px solid #cfd5dc;border-radius:7px;background:#fff;min-width:0}
+input:focus,select:focus{outline:2px solid #99d5cf;border-color:var(--accent)}
+button{font:inherit;cursor:pointer;border-radius:7px;border:1px solid #cfd5dc;background:#fff;padding:7px 12px;color:var(--text)}
+button:hover{background:#f1f3f5}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{background:#0d655e}
+button.danger{color:#b91c1c}
+button.small{padding:3px 8px;font-size:12.5px}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tabs a{padding:8px 16px;border-radius:999px;text-decoration:none;color:var(--text);background:#fff;border:1px solid var(--line);font-weight:600;font-size:14px}
+.tabs a.on{background:var(--text);color:#fff;border-color:var(--text)}
+.form-cv{grid-template-columns:1.6fr repeat(5,1fr) 1.6fr auto;align-items:end}
+.form-bh{grid-template-columns:1.6fr 1fr 1.6fr 1fr 1.6fr auto;align-items:end}
+@media (max-width:900px){.form-cv,.form-bh{grid-template-columns:1fr 1fr}}
+.lab-temp{color:var(--temp)} .lab-fc{color:var(--fc)} .lab-ta{color:var(--ta)} .lab-fr{color:var(--fr)}
+.lab-temp,.lab-fc,.lab-ta,.lab-fr{font-weight:700}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:4px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:22px;height:0;border-top:3px solid;display:inline-block}
+.chartwrap{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+#axes{flex:none;border-right:1px solid var(--grid2);background:#fcfcfd}
+#plotScroll{overflow-x:auto;flex:1}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.02em;background:#fafbfc}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+.alto{background:#fde8e8;font-weight:700;border-radius:4px;padding:1px 5px}
+.bajo{background:#e6effd;font-weight:700;border-radius:4px;padding:1px 5px}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.seg{display:inline-flex;border:1px solid #cfd5dc;border-radius:7px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:7px 12px}
+.seg button.on{background:var(--text);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:8px 0 14px}
+.kpi{border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.kpi .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.kpi .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.pos{color:#1d4ed8} .neg{color:#b91c1c}
+tr.sub td{font-weight:700;background:#fafbfc}
+tr.tot td{font-weight:800;border-top:2px solid var(--text)}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.toolbar .sp{flex:1}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border-radius:999px;padding:7px 14px;font-size:14px;background:#fff}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.todos{border-style:solid;font-weight:600}
+.chip.todos.on{background:var(--text);border-color:var(--text)}
+.chip.nuevo{border-style:dashed;color:var(--accent);font-weight:600}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1f2933;color:#fff;padding:9px 16px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.show{opacity:1}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:10}
+.modal.show{display:flex}
+.modal .box{background:#fff;border-radius:10px;padding:18px;max-width:380px;width:90%}
+.modal .box p{margin:0 0 14px}
+.modal .row{display:flex;gap:8px;justify-content:flex-end}
+svg text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="application/json" id="state">{"pacientes":[],"activo":null,"savedAt":0}</script>
+<script id="app">
+(function(){
+"use strict";
+/* ---------- Estado ---------- */
+/* db = {pacientes:[{id,paciente,constantes,balance,ajustes}], activo, savedAt}
+   state = paciente activo (se reasigna al cambiar de paciente) */
+function nuevoPaciente(){return {id:uid(),paciente:{nombre:"",hab:"",historia:"",edad:"",peso:"",ingreso:"",diagnostico:""},constantes:[],balance:[],ajustes:{insensibles:false}}}
+function migrar(raw){
+  if(!raw) return null;
+  if(raw.pacientes) return raw;
+  var p=nuevoPaciente();
+  p.paciente=raw.paciente||p.paciente;p.constantes=raw.constantes||[];p.balance=raw.balance||[];p.ajustes=raw.ajustes||p.ajustes;
+  var vacio=!p.constantes.length&&!p.balance.length&&!Object.keys(p.paciente).some(function(k){return p.paciente[k]});
+  return {pacientes:vacio?[]:[p],activo:vacio?null:p.id,savedAt:raw.savedAt||0};
+}
+var SEED = migrar(JSON.parse(document.getElementById("state").textContent));
+var db = SEED;
+try{
+  var ls = migrar(JSON.parse(localStorage.getItem("grafica-enf-v2") || localStorage.getItem("grafica-enf-v1") || "null"));
+  if(ls && (ls.savedAt||0) > (SEED.savedAt||0)) db = ls;
+}catch(e){}
+db.pacientes.forEach(function(p){p.paciente=p.paciente||{};p.constantes=p.constantes||[];p.balance=p.balance||[];p.ajustes=p.ajustes||{insensibles:false}});
+if(!db.pacientes.length){var p0=nuevoPaciente();db.pacientes.push(p0);db.activo=p0.id}
+var state = null;
+function activar(id){
+  state = db.pacientes.filter(function(p){return p.id===id})[0] || db.pacientes[0];
+  db.activo = state.id; diaSel = null;
+}
+
+var artifactApi = null, canPublish = false, pubTimer = null;
+/* Envío a la profesora: pega aquí la dirección de la aplicación web de Google y la clave de clase */
+var ENVIO = {url:"https://script.google.com/a/macros/educarex.es/s/AKfycbyAOR3Krt5KjGGuEmP-CZYwaElw7Hp5iSMxmhGOBy68487cLnxK7UMwylXeVft8snUw6w/exec", clave:"tbegraficasybalance"};
+var vista = (location.hash === "#balance") ? "balance" : (location.hash === "#resumen") ? "resumen" : "constantes";
+var tipoBH = "ingreso";
+var diaSel = null;
+
+var CONCEPTOS = {
+  ingreso:["Vía oral","Sueroterapia IV","Medicación IV","Nutrición enteral","Nutrición parenteral","Hemoderivados","Otros ingresos"],
+  egreso:["Diuresis","Deposiciones","Vómitos","Drenajes","Aspirado SNG","Sudoración","Otras pérdidas"]
+};
+var TURNOS = [{id:"M",n:"Mañana",d:"8–15 h",h:7},{id:"T",n:"Tarde",d:"15–22 h",h:7},{id:"N",n:"Noche",d:"22–8 h",h:10}];
+
+/* Escalas: 8 divisiones numeradas, cada una con 4 espacios iguales (T 0,25 · FC 5 · TA 5 · FR 1) */
+var ESC = {
+  temp:{min:34,max:42,paso:1,col:"var(--temp)",hex:"#d62828",lab:"T ª (°C)"},
+  fc:{min:40,max:200,paso:20,col:"var(--fc)",hex:"#1d4ed8",lab:"FC (lpm)"},
+  ta:{min:40,max:200,paso:20,col:"var(--ta)",hex:"#15803d",lab:"TA (mmHg)"},
+  fr:{min:4,max:36,paso:4,col:"var(--fr)",hex:"#111111",lab:"FR (rpm)"}
+};
+
+/* ---------- Utilidades ---------- */
+function $(s,r){return (r||document).querySelector(s)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function pad(n){return (n<10?"0":"")+n}
+function ahoraLocal(){var d=new Date();d.setSeconds(0,0);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
+function fFecha(t){var d=new Date(t);return pad(d.getDate())+"/"+pad(d.getMonth()+1)}
+function fHora(t){var d=new Date(t);return pad(d.getHours())+":"+pad(d.getMinutes())}
+function fFull(t){var d=new Date(t);return fFecha(t)+"/"+d.getFullYear()+" "+fHora(t)}
+function num(v){if(v===""||v==null)return null;var n=parseFloat(String(v).replace(",","."));return isNaN(n)?null:n}
+function fmt(n,dec){if(n==null)return "";return Number(n).toLocaleString("es-ES",{minimumFractionDigits:dec||0,maximumFractionDigits:dec||0})}
+function toast(m){var t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove("show")},1800)}
+function confirmar(msg,ok){var m=$("#modal");$("#modalMsg").textContent=msg;m.classList.add("show");
+  $("#modalOk").onclick=function(){m.classList.remove("show");ok()};$("#modalNo").onclick=function(){m.classList.remove("show")}}
+
+/* Día de balance: de 8:00 a 8:00 */
+function diaBalance(t){var d=new Date(t-8*3600000);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function fDia(k){var p=k.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+function turnoDe(t){var h=new Date(t).getHours();return (h>=8&&h<15)?"M":(h>=15&&h<22)?"T":"N"}
+
+/* Rangos de referencia (adulto) para resaltar */
+function marca(tipo,v){
+  if(v==null)return "";
+  var r={temp:[36,38],fc:[60,100],tas:[90,140],tad:[60,90],fr:[12,20]}[tipo];
+  if(tipo==="temp"){ if(v>=38)return "alto"; if(v<36)return "bajo"; return ""; }
+  if(v>r[1]||(tipo==="tas"&&v>=140)||(tipo==="tad"&&v>=90))return "alto";
+  if(v<r[0])return "bajo"; return "";
+}
+function celda(tipo,v,dec){if(v==null)return "—";var c=marca(tipo,v);var s=fmt(v,dec);return c?'<span class="'+c+'">'+s+'</span>':s}
+
+/* ---------- Guardado ---------- */
+function guardar(){
+  db.savedAt = Date.now();
+  try{localStorage.setItem("grafica-enf-v2",JSON.stringify(db))}catch(e){}
+  if(canPublish){
+    setStatus("Guardando…","");
+    clearTimeout(pubTimer);
+    pubTimer=setTimeout(publicar,1200);
+  }else{
+    setStatus("Guardado solo en este navegador","local");
+  }
+}
+function documento(){
+  var css=document.getElementById("css").textContent;
+  var app=document.getElementById("app").textContent;
+  var json=JSON.stringify(db).replace(/</g,"\\u003c");
+  return "<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Gráfica de enfermería y balance hídrico</title>\n<style id=\"css\">"+css+"</style>\n</head>\n<body>\n<div id=\"root\"></div>\n<script type=\"application/json\" id=\"state\">"+json+"<\/script>\n<script id=\"app\">"+app+"<\/script>\n</body>\n</html>\n";
+}
+function publicar(){
+  if(!artifactApi)return;
+  try{sessionStorage.setItem("grafica-enf-scroll",String(window.scrollY))}catch(e){}
+  Promise.resolve().then(function(){return artifactApi.publish(documento())}).then(function(){
+    setStatus("Guardado","ok");
+  }).catch(function(err){
+    var c=(err&&(err.code||err.name||err.message))||"";
+    if(/not_granted|not_writer/.test(c)){canPublish=false;setStatus("Solo lectura · guardado en este navegador","local")}
+    else if(/conflict/.test(c)){setStatus("Otra pestaña guardó a la vez; recargando","local")}
+    else setStatus("No se pudo guardar en la página · guardado en este navegador","local");
+  });
+}
+function enviarTrabajo(){
+  var msg=$("#envioMsg"), btn=$("#btnEnvio"), nom=($("#alumnoNombre").value||"").trim();
+  if(!nom){msg.textContent="Escribe tu nombre para poder enviar.";return}
+  try{localStorage.setItem("grafica-enf-alumno",nom)}catch(e){}
+  btn.disabled=true; msg.textContent="Enviando…";
+  var datos={clave:ENVIO.clave,alumno:nom,pacientes:db.pacientes};
+  var fin=function(t,ok){btn.disabled=false;msg.textContent=t;msg.style.color=ok?"#15803d":"#b91c1c"};
+  fetch(ENVIO.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(datos)})
+   .then(function(r){return r.json()})
+   .then(function(j){ if(j&&j.ok)fin("Enviado correctamente ("+j.pacientes+" paciente(s), "+new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})+")",true); else fin("No se pudo enviar: "+((j&&j.error)||"respuesta inesperada"),false)})
+   .catch(function(){fin("No se pudo enviar. Comprueba la conexión e inténtalo de nuevo.",false)});
+}
+function setStatus(t,c){var s=$("#status");if(!s)return;s.textContent=t;s.className=c||""}
+
+/* ---------- Render principal ---------- */
+function render(){
+  var r=$("#root");
+  r.innerHTML =
+  '<header class="top"><h1>Gráfica de enfermería</h1><span id="status"></span>'+(ENVIO.url?'<button class="small primary" id="btnEnviar">Enviar trabajo</button>':'')+'</header>'+
+  '<main>'+
+   '<section class="card"><div class="toolbar" style="margin-bottom:8px"><h2 style="margin:0">Pacientes</h2><span class="hint" style="margin:0">'+db.pacientes.length+' en total</span></div>'+
+    '<div class="chips">'+
+     '<button class="chip todos'+(vista==="resumen"?" on":"")+'" id="btnResumen">Resumen de todos</button>'+
+     db.pacientes.map(function(p){return '<button class="chip'+(vista!=="resumen"&&p.id===state.id?" on":"")+'" data-pid="'+p.id+'">'+etiquetaPac(p)+'</button>'}).join("")+
+     '<button class="chip nuevo" id="btnNuevo">+ Nuevo paciente</button>'+
+    '</div></section>'+
+   (vista==="resumen" ? '<div id="vista"></div>' :
+   '<section class="card"><div class="toolbar"><h2 style="margin:0">Datos del paciente</h2><span class="sp"></span><button class="small danger" id="btnDel">Eliminar paciente</button></div><div class="grid pac">'+
+     campoP("nombre","Nombre y apellidos")+campoP("hab","Habitación / cama")+campoP("historia","N.º historia clínica")+
+     campoP("edad","Edad")+campoP("peso","Peso (kg)")+campoP("ingreso","Fecha de ingreso","date")+campoP("diagnostico","Diagnóstico / motivo de ingreso")+campoP("registra","Personal que registra")+
+   '</div></section>'+
+   '<nav class="tabs"><a href="#constantes" data-v="constantes" class="'+(vista==="constantes"?"on":"")+'">Constantes vitales</a>'+
+   '<a href="#balance" data-v="balance" class="'+(vista==="balance"?"on":"")+'">Balance hídrico</a></nav>'+
+   '<div id="vista"></div>')+
+  '</main>'+
+  '<div id="toast"></div>'+
+  '<div class="modal" id="modal"><div class="box"><p id="modalMsg"></p><div class="row"><button id="modalNo">Cancelar</button><button class="primary" id="modalOk">Aceptar</button></div></div></div>';
+
+  r.querySelectorAll("[data-p]").forEach(function(inp){
+    inp.addEventListener("change",function(){state.paciente[inp.dataset.p]=inp.value;guardar();
+      if(inp.dataset.p==="nombre"||inp.dataset.p==="hab"){var c=r.querySelector('[data-pid="'+state.id+'"]');if(c)c.innerHTML=etiquetaPac(state)}
+      if(inp.dataset.p==="peso"&&vista==="balance")renderBalance()});
+  });
+  function irA(v){vista=v;try{history.replaceState(null,"","#"+v)}catch(_){location.hash=v}}
+  r.querySelectorAll("[data-pid]").forEach(function(b){b.addEventListener("click",function(){
+    activar(b.dataset.pid); if(vista==="resumen") irA("constantes"); render(); window.scrollTo(0,0);
+  })});
+  $("#btnResumen").addEventListener("click",function(){irA("resumen");render()});
+  var be=$("#btnEnviar"); if(be) be.addEventListener("click",function(){irA("resumen");render();var e=$("#envio");if(e)e.scrollIntoView({behavior:"smooth"})});
+  $("#btnNuevo").addEventListener("click",function(){
+    var p=nuevoPaciente();db.pacientes.push(p);activar(p.id);irA("constantes");guardar();render();
+    var n=r.querySelector('[data-p="nombre"]');if(n)n.focus();toast("Paciente nuevo creado: rellena sus datos");
+  });
+  var bd=$("#btnDel"); if(bd) bd.addEventListener("click",function(){
+    confirmar("¿Eliminar a "+(state.paciente.nombre||"este paciente")+" con todas sus constantes y su balance? No se puede deshacer.",function(){
+      db.pacientes=db.pacientes.filter(function(p){return p.id!==state.id});
+      if(!db.pacientes.length) db.pacientes.push(nuevoPaciente());
+      activar(db.pacientes[0].id);guardar();render();toast("Paciente eliminado");
+    });
+  });
+  r.querySelectorAll(".tabs a").forEach(function(a){
+    a.addEventListener("click",function(e){e.preventDefault();vista=a.dataset.v;try{history.replaceState(null,"","#"+vista)}catch(_){location.hash=vista}
+      r.querySelectorAll(".tabs a").forEach(function(b){b.classList.toggle("on",b===a)});renderVista()});
+  });
+  renderVista();
+  setStatus(canPublish?"Guardado":"Guardado en este navegador",canPublish?"ok":"local");
+}
+function campoP(k,l,type){return '<label>'+l+'<input data-p="'+k+'" type="'+(type||"text")+'" value="'+esc(state.paciente[k]||"")+'"></label>'}
+function etiquetaPac(p){
+  var n=p.paciente.nombre?esc(p.paciente.nombre):'<i>Sin nombre</i>';
+  return (p.paciente.hab?'<b>Hab. '+esc(p.paciente.hab)+'</b> · ':'')+n;
+}
+function renderVista(){ if(vista==="resumen") renderResumen(); else if(vista==="balance") renderBalance(); else renderConstantes(); }
+
+/* ---------- Resumen de todos los pacientes ---------- */
+function renderResumen(){
+  var v=$("#vista");
+  var lista=db.pacientes.slice().sort(function(a,b){return String(a.paciente.hab||"~").localeCompare(String(b.paciente.hab||"~"),"es",{numeric:true})});
+  var h='<section class="card"><h2>Resumen de pacientes</h2><div class="tablewrap"><table><thead><tr>'+
+    '<th>Hab.</th><th>Paciente</th><th>Diagnóstico</th><th>Últimas constantes</th><th class="num lab-ta">TA</th><th class="num lab-fc">FC</th><th class="num lab-temp">T ª</th><th class="num lab-fr">FR</th><th class="num">Balance último día</th><th></th></tr></thead><tbody>';
+  lista.forEach(function(p){
+    var u=p.constantes.slice().sort(function(a,b){return b.t-a.t})[0];
+    var bal="—";
+    if(p.balance.length){
+      var ult=p.balance.map(function(b){return diaBalance(b.t)}).sort().pop();
+      var c=calcDia(ult,num(p.paciente.peso),p);var b=c.ing-c.egr;
+      bal='<span class="'+(b>0?"pos":b<0?"neg":"")+'" style="font-weight:700">'+signo(b)+' ml</span> <span class="hint">('+fDia(ult).slice(0,5)+')</span>';
+    }
+    h+='<tr><td>'+esc(p.paciente.hab||"—")+'</td><td><b>'+(p.paciente.nombre?esc(p.paciente.nombre):'<i>Sin nombre</i>')+'</b>'+(p.paciente.edad?' <span class="hint">'+esc(p.paciente.edad)+' años</span>':'')+'</td>'+
+      '<td style="white-space:normal;max-width:220px">'+esc(p.paciente.diagnostico||"")+'</td>'+
+      (u? '<td>'+fFull(u.t)+'</td><td class="num">'+(u.tas!=null?celda("tas",u.tas)+"/"+celda("tad",u.tad):"—")+'</td><td class="num">'+celda("fc",u.fc)+'</td><td class="num">'+celda("temp",u.temp,1)+'</td><td class="num">'+celda("fr",u.fr)+'</td>'
+         : '<td class="hint">Sin registros</td><td></td><td></td><td></td><td></td>')+
+      '<td class="num">'+bal+'</td><td><button class="small" data-abrir="'+p.id+'">Abrir</button></td></tr>';
+  });
+  h+='</tbody></table></div><p class="hint">Ordenados por habitación. Se resaltan en rojo o azul los valores fuera del rango de referencia del adulto.</p></section>';
+  if(ENVIO.url){
+    var nom="";try{nom=localStorage.getItem("grafica-enf-alumno")||""}catch(e){}
+    h+='<section class="card" id="envio"><h2>Enviar mi trabajo a la profesora</h2>'+
+      '<p class="hint" style="margin-top:0">Se enviarán todos los pacientes de esta pantalla ('+db.pacientes.length+') con sus constantes y su balance. Puedes volver a enviar cuando los actualices: se sustituye lo anterior.</p>'+
+      '<label>Tu nombre y apellidos<input id="alumnoNombre" type="text" autocomplete="name" value="'+esc(nom)+'"></label>'+
+      '<div class="toolbar" style="margin-top:10px"><button class="primary" id="btnEnvio">Enviar mi trabajo</button><span id="envioMsg" class="hint"></span></div></section>';
+  }
+  v.innerHTML=h;
+  var bs=$("#btnEnvio"); if(bs) bs.addEventListener("click",enviarTrabajo);
+  v.querySelectorAll("[data-abrir]").forEach(function(b){b.addEventListener("click",function(){
+    activar(b.dataset.abrir);vista="constantes";try{history.replaceState(null,"","#constantes")}catch(_){}render();window.scrollTo(0,0);
+  })});
+}
+
+/* ---------- Constantes ---------- */
+function renderConstantes(){
+  var v=$("#vista");
+  var regs=state.constantes.slice().sort(function(a,b){return a.t-b.t});
+  v.innerHTML =
+  '<section class="card"><h2>Nuevo registro de constantes</h2>'+
+   '<form id="fCV" class="grid form-cv" autocomplete="off">'+
+    '<label>Fecha y hora<input type="datetime-local" name="t" required value="'+ahoraLocal()+'"></label>'+
+    '<label><span class="lab-ta">TA sistólica</span><input name="tas" type="number" inputmode="numeric" min="40" max="300" placeholder="mmHg"></label>'+
+    '<label><span class="lab-ta">TA diastólica</span><input name="tad" type="number" inputmode="numeric" min="20" max="200" placeholder="mmHg"></label>'+
+    '<label><span class="lab-fc">FC</span><input name="fc" type="number" inputmode="numeric" min="20" max="250" placeholder="lpm"></label>'+
+    '<label><span class="lab-temp">Temperatura</span><input name="temp" type="number" inputmode="decimal" step="0.1" min="30" max="44" placeholder="°C"></label>'+
+    '<label><span class="lab-fr">FR</span><input name="fr" type="number" inputmode="numeric" min="2" max="70" placeholder="rpm"></label>'+
+    '<label>Observaciones<input name="obs" type="text" placeholder="Opcional"></label>'+
+    '<button class="primary" type="submit">Añadir</button>'+
+   '</form><p class="hint" id="cvMsg">Puedes dejar en blanco las constantes que no hayas tomado. La TA necesita sistólica y diastólica.</p>'+
+  '</section>'+
+  '<section class="card"><h2>Gráfica</h2>'+
+   '<div class="legend">'+
+    '<span><i class="sw" style="border-color:var(--ta)"></i><b class="lab-ta">TA</b> (barra sistólica–diastólica)</span>'+
+    '<span><i class="sw" style="border-color:var(--fc)"></i><b class="lab-fc">FC</b></span>'+
+    '<span><i class="sw" style="border-color:var(--temp)"></i><b class="lab-temp">Temperatura</b></span>'+
+    '<span><i class="sw" style="border-color:var(--fr)"></i><b class="lab-fr">FR</b></span>'+
+   '</div>'+
+   (regs.length? '<div class="chartwrap"><div id="axes"></div><div id="plotScroll"><div id="plot"></div></div></div><p class="hint">Entre dos números consecutivos hay 4 espacios iguales. Cada espacio vale: <b class="lab-temp">T ª 0,25 °C</b> · <b class="lab-fc">FC 5 lpm</b> · <b class="lab-ta">TA 5 mmHg</b> · <b class="lab-fr">FR 1 rpm</b>.</p>'
+     : '<div class="empty">Aún no hay registros. Añade el primero arriba y aparecerá aquí.</div>')+
+  '</section>'+
+  '<section class="card"><div class="toolbar"><h2 style="margin:0">Registros</h2><span class="sp"></span>'+
+   (regs.length?'<button class="small" id="copyCV">Copiar tabla (CSV)</button>':'')+'</div>'+
+   (regs.length? tablaCV(regs) : '<div class="empty">Sin registros.</div>')+
+   '<p class="hint">Resaltado <span class="alto">rojo</span> = por encima del rango de referencia en adultos; <span class="bajo">azul</span> = por debajo. Referencias: T 36–37,9 °C · FC 60–100 lpm · TA &lt;140/90 y TAS ≥90 mmHg · FR 12–20 rpm.</p>'+
+  '</section>';
+
+  $("#fCV").addEventListener("submit",function(e){
+    e.preventDefault();
+    var f=e.target, msg=$("#cvMsg");
+    var t=new Date(f.t.value).getTime();
+    var reg={id:uid(),t:t,tas:num(f.tas.value),tad:num(f.tad.value),fc:num(f.fc.value),temp:num(f.temp.value),fr:num(f.fr.value),obs:f.obs.value.trim()};
+    if(isNaN(t)){msg.textContent="Indica la fecha y la hora.";return}
+    if((reg.tas==null)!==(reg.tad==null)){msg.textContent="Para la TA rellena sistólica y diastólica.";msg.style.color="#b91c1c";return}
+    if(reg.tas!=null&&reg.tad>=reg.tas){msg.textContent="La diastólica debe ser menor que la sistólica.";msg.style.color="#b91c1c";return}
+    if(reg.tas==null&&reg.fc==null&&reg.temp==null&&reg.fr==null){msg.textContent="Introduce al menos una constante.";msg.style.color="#b91c1c";return}
+    state.constantes.push(reg);guardar();renderConstantes();toast("Registro añadido");
+  });
+  v.querySelectorAll("[data-delcv]").forEach(function(b){b.addEventListener("click",function(){
+    confirmar("¿Borrar este registro de constantes?",function(){state.constantes=state.constantes.filter(function(x){return x.id!==b.dataset.delcv});guardar();renderConstantes()})})});
+  var cp=$("#copyCV"); if(cp) cp.addEventListener("click",function(){copiar(csvCV(regs))});
+  if(regs.length) dibujarGrafica(regs);
+}
+function tablaCV(regs){
+  var h='<div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Hora</th><th class="num lab-ta">TA (mmHg)</th><th class="num lab-fc">FC</th><th class="num lab-temp">T ª</th><th class="num lab-fr">FR</th><th>Observaciones</th><th></th></tr></thead><tbody>';
+  regs.slice().reverse().forEach(function(r){
+    var ta = r.tas!=null ? celda("tas",r.tas)+" / "+celda("tad",r.tad) : "—";
+    h+='<tr><td>'+fFecha(r.t)+'/'+new Date(r.t).getFullYear()+'</td><td>'+fHora(r.t)+'</td><td class="num">'+ta+'</td><td class="num">'+celda("fc",r.fc)+'</td><td class="num">'+celda("temp",r.temp,1)+'</td><td class="num">'+celda("fr",r.fr)+'</td><td>'+esc(r.obs||"")+'</td><td><button class="small danger" data-delcv="'+r.id+'">Borrar</button></td></tr>';
+  });
+  return h+'</tbody></table></div>';
+}
+function csvCV(regs){
+  var l=["Fecha;Hora;TAS;TAD;FC;Temperatura;FR;Observaciones"];
+  regs.forEach(function(r){l.push([fFecha(r.t)+"/"+new Date(r.t).getFullYear(),fHora(r.t),r.tas==null?"":r.tas,r.tad==null?"":r.tad,r.fc==null?"":r.fc,r.temp==null?"":String(r.temp).replace(".",","),r.fr==null?"":r.fr,(r.obs||"").replace(/;/g,",")].join(";"))});
+  return l.join("\n");
+}
+
+function dibujarGrafica(regs){
+  var TOP=24, H=512, BOT=56, DIV=8, SUB=4, COLW=64, PADL=24, PADR=30;
+  var totalH=TOP+H+BOT;
+  function fmtEje(v){return Number.isInteger(v)?String(v):String(v).replace(".",",")}
+  function y(v,s){var e=ESC[s];var c=Math.max(e.min,Math.min(e.max,v));return TOP+H*(1-(c-e.min)/(e.max-e.min))}
+  /* Ejes (columnas de escala, como en la gráfica en papel) */
+  var cols=["ta","fc","temp","fr"], AW=58, ax='<svg width="'+(AW*cols.length)+'" height="'+totalH+'" role="img" aria-label="Escalas">';
+  cols.forEach(function(s,i){
+    var e=ESC[s], x=i*AW+AW/2;
+    ax+='<text x="'+x+'" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="'+e.hex+'">'+e.lab.split(" ")[0]+'</text>';
+    var bx=i*AW+9;
+    ax+='<line x1="'+bx+'" y1="'+TOP+'" x2="'+bx+'" y2="'+(TOP+H)+'" stroke="'+e.hex+'" stroke-width="3" stroke-opacity=".55"/>';
+    for(var j=0;j<=DIV*SUB;j++){if(j%SUB===0)continue;var ym=TOP+H*(1-j/(DIV*SUB));
+      ax+='<line x1="'+bx+'" y1="'+ym+'" x2="'+(bx+5)+'" y2="'+ym+'" stroke="'+e.hex+'" stroke-width="1.5" stroke-opacity=".5"/>';}
+    for(var k=0;k<=DIV;k++){var val=e.min+k*e.paso;var yy=TOP+H*(1-k/DIV);
+      ax+='<line x1="'+bx+'" y1="'+yy+'" x2="'+(bx+10)+'" y2="'+yy+'" stroke="'+e.hex+'" stroke-width="3" stroke-opacity=".55"/>'+
+        '<text x="'+(bx+14)+'" y="'+(yy+4)+'" text-anchor="start" font-size="12" font-weight="700" fill="'+e.hex+'">'+fmtEje(val)+'</text>';}
+    ax+='<text x="'+x+'" y="'+(TOP+H+22)+'" text-anchor="middle" font-size="10" fill="#66727f">'+e.lab.replace(/^[^(]*/,"")+'</text>';
+    if(i>0) ax+='<line x1="'+(i*AW)+'" y1="0" x2="'+(i*AW)+'" y2="'+totalH+'" stroke="#e3e6ea"/>';
+  });
+  ax+='</svg>';
+  $("#axes").innerHTML=ax;
+
+  var n=regs.length, W=Math.max(PADL+PADR+n*COLW, 600);
+  function x(i){return PADL+COLW/2+i*COLW}
+  var s='<svg width="'+W+'" height="'+totalH+'" role="img" aria-label="Gráfica de constantes vitales">';
+  /* Cuadrícula */
+  for(var k=0;k<=DIV*SUB;k++){var yy=TOP+H*k/(DIV*SUB);var mayor=k%SUB===0;
+    s+='<line x1="0" y1="'+yy+'" x2="'+W+'" y2="'+yy+'" stroke="'+(mayor?"#8d97a3":"#e3e6ea")+'" stroke-width="'+(mayor?1.5:1)+'"/>';}
+  /* Línea de 37 °C */
+  var y37=y(37,"temp");
+  s+='<line x1="0" y1="'+y37+'" x2="'+W+'" y2="'+y37+'" stroke="#d62828" stroke-dasharray="5 4" stroke-opacity=".45"/>';
+  /* Columnas por registro y cambio de día */
+  var diaAnt=null;
+  regs.forEach(function(r,i){
+    var xc=x(i), d=fFecha(r.t);
+    s+='<line x1="'+(xc-COLW/2)+'" y1="'+TOP+'" x2="'+(xc-COLW/2)+'" y2="'+(TOP+H)+'" stroke="'+(d!==diaAnt&&i>0?"#9aa3ad":"#f1f2f4")+'"/>';
+    s+='<text x="'+xc+'" y="'+(TOP+H+20)+'" text-anchor="middle" font-size="12" font-weight="'+(d!==diaAnt?"700":"400")+'" fill="#1f2933">'+(d!==diaAnt?d:"")+'</text>';
+    s+='<text x="'+xc+'" y="'+(TOP+H+37)+'" text-anchor="middle" font-size="12" fill="#66727f">'+fHora(r.t)+'</text>';
+    diaAnt=d;
+  });
+  /* Líneas */
+  function linea(campo,esc,color,ancho,dash){
+    var pts=[];regs.forEach(function(r,i){if(r[campo]!=null)pts.push(x(i)+","+y(r[campo],esc))});
+    if(pts.length>1) s+='<polyline points="'+pts.join(" ")+'" fill="none" stroke="'+color+'" stroke-width="'+ancho+'" stroke-linejoin="round"'+(dash?' stroke-dasharray="'+dash+'"':'')+'/>';
+  }
+  /* TA: barra vertical sistólica–diastólica con topes */
+  regs.forEach(function(r,i){
+    if(r.tas==null)return;
+    var xc=x(i)-12, y1=y(r.tas,"ta"), y2=y(r.tad,"ta");
+    s+='<g><title>TA '+r.tas+'/'+r.tad+' mmHg · '+fFull(r.t)+'</title>'+
+      '<line x1="'+xc+'" y1="'+y1+'" x2="'+xc+'" y2="'+y2+'" stroke="#15803d" stroke-width="3"/>'+
+      '<path d="M'+(xc-6)+' '+(y1-6)+' L'+xc+' '+y1+' L'+(xc+6)+' '+(y1-6)+'" fill="none" stroke="#15803d" stroke-width="2.5"/>'+
+      '<path d="M'+(xc-6)+' '+(y2+6)+' L'+xc+' '+y2+' L'+(xc+6)+' '+(y2+6)+'" fill="none" stroke="#15803d" stroke-width="2.5"/>'+
+      '<text x="'+(xc-4)+'" y="'+(y1-9)+'" text-anchor="middle" font-size="10" fill="#15803d">'+r.tas+'</text>'+
+      '<text x="'+(xc-4)+'" y="'+(y2+18)+'" text-anchor="middle" font-size="10" fill="#15803d">'+r.tad+'</text></g>';
+  });
+  linea("fr","fr","#111111",2);
+  linea("fc","fc","#1d4ed8",2.2);
+  linea("temp","temp","#d62828",2.5);
+  /* Puntos */
+  regs.forEach(function(r,i){
+    var xc=x(i);
+    if(r.fr!=null){var yf=y(r.fr,"fr");s+='<g><title>FR '+r.fr+' rpm · '+fFull(r.t)+'</title><path d="M'+(xc-4.5)+' '+(yf-4.5)+' L'+(xc+4.5)+' '+(yf+4.5)+' M'+(xc+4.5)+' '+(yf-4.5)+' L'+(xc-4.5)+' '+(yf+4.5)+'" stroke="#111" stroke-width="2.2"/><rect x="'+(xc-8)+'" y="'+(yf-8)+'" width="16" height="16" fill="transparent"/></g>'}
+    if(r.fc!=null){var yc=y(r.fc,"fc");s+='<g><title>FC '+r.fc+' lpm · '+fFull(r.t)+'</title><circle cx="'+xc+'" cy="'+yc+'" r="5" fill="#fff" stroke="#1d4ed8" stroke-width="2.5"/></g>'}
+    if(r.temp!=null){var yt=y(r.temp,"temp");s+='<g><title>Temperatura '+fmt(r.temp,1)+' °C · '+fFull(r.t)+'</title><circle cx="'+xc+'" cy="'+yt+'" r="5.5" fill="#d62828" stroke="#fff" stroke-width="1.5"/></g>'}
+  });
+  s+='</svg>';
+  $("#plot").innerHTML=s;
+  var sc=$("#plotScroll"); sc.scrollLeft=sc.scrollWidth;
+}
+
+/* ---------- Balance hídrico ---------- */
+function renderBalance(){
+  var v=$("#vista");
+  var dias=[];state.balance.forEach(function(b){var d=diaBalance(b.t);if(dias.indexOf(d)<0)dias.push(d)});
+  dias.sort();
+  if(!diaSel||dias.indexOf(diaSel)<0) diaSel=dias.length?dias[dias.length-1]:null;
+  var peso=num(state.paciente.peso);
+
+  v.innerHTML =
+  '<section class="card"><h2>Nuevo registro de líquidos</h2>'+
+   '<form id="fBH" class="grid form-bh" autocomplete="off">'+
+    '<label>Fecha y hora<input type="datetime-local" name="t" required value="'+ahoraLocal()+'"></label>'+
+    '<label>Tipo<span class="seg"><button type="button" data-tipo="ingreso" class="'+(tipoBH==="ingreso"?"on":"")+'">Ingreso</button><button type="button" data-tipo="egreso" class="'+(tipoBH==="egreso"?"on":"")+'">Egreso</button></span></label>'+
+    '<label>Concepto<select name="concepto">'+CONCEPTOS[tipoBH].map(function(c){return '<option>'+c+'</option>'}).join("")+'</select></label>'+
+    '<label>Volumen (ml)<input name="ml" type="number" inputmode="numeric" min="1" max="10000" required placeholder="ml"></label>'+
+    '<label>Observaciones<input name="obs" type="text" placeholder="Opcional (p. ej. SSF 0,9 %)"></label>'+
+    '<button class="primary" type="submit">Añadir</button>'+
+   '</form><p class="hint" id="bhMsg">Turnos: mañana 8–15 h, tarde 15–22 h, noche 22–8 h. El día de balance va de 8:00 a 8:00.</p>'+
+  '</section>'+
+  '<section class="card"><div class="toolbar"><h2 style="margin:0">Hoja de balance</h2><span class="sp"></span>'+
+   (dias.length?'<label style="flex-direction:row;align-items:center;gap:8px">Día<select id="selDia">'+dias.slice().reverse().map(function(d){return '<option value="'+d+'"'+(d===diaSel?" selected":"")+'>'+fDia(d)+' (8:00 → 8:00)</option>'}).join("")+'</select></label>':'')+
+   '<label style="flex-direction:row;align-items:center;gap:6px;color:var(--text)"><input type="checkbox" id="chkIns"'+(state.ajustes.insensibles?" checked":"")+'> Incluir pérdidas insensibles</label>'+
+  '</div>'+
+  (state.ajustes.insensibles && peso==null ? '<p class="hint" style="color:#b45309">Para calcular las pérdidas insensibles, indica el peso del paciente arriba.</p>':'')+
+  (diaSel? hojaBalance(diaSel,peso) : '<div class="empty">Aún no hay registros de líquidos.</div>')+
+  '</section>'+
+  '<section class="card"><div class="toolbar"><h2 style="margin:0">Registros del día</h2><span class="sp"></span>'+(diaSel?'<button class="small" id="copyBH">Copiar día (CSV)</button>':'')+'</div>'+
+   (diaSel? tablaBH(diaSel) : '<div class="empty">Sin registros.</div>')+
+  '</section>'+
+  (dias.length>1? '<section class="card"><h2>Evolución por días</h2>'+evolucion(dias,peso)+'</section>':'');
+
+  v.querySelectorAll("[data-tipo]").forEach(function(b){b.addEventListener("click",function(){
+    tipoBH=b.dataset.tipo;
+    v.querySelectorAll("[data-tipo]").forEach(function(o){o.classList.toggle("on",o===b)});
+    $("#fBH").concepto.innerHTML=CONCEPTOS[tipoBH].map(function(c){return '<option>'+c+'</option>'}).join("");
+  })});
+  $("#fBH").addEventListener("submit",function(e){
+    e.preventDefault();var f=e.target;var t=new Date(f.t.value).getTime();var ml=num(f.ml.value);
+    if(isNaN(t)||ml==null||ml<=0){$("#bhMsg").textContent="Indica fecha, hora y un volumen mayor que 0.";$("#bhMsg").style.color="#b91c1c";return}
+    state.balance.push({id:uid(),t:t,tipo:tipoBH,concepto:f.concepto.value,ml:Math.round(ml),obs:f.obs.value.trim()});
+    diaSel=diaBalance(t);guardar();renderBalance();toast((tipoBH==="ingreso"?"Ingreso":"Egreso")+" añadido");
+  });
+  var sd=$("#selDia"); if(sd) sd.addEventListener("change",function(){diaSel=sd.value;renderBalance()});
+  $("#chkIns").addEventListener("change",function(e){state.ajustes.insensibles=e.target.checked;guardar();renderBalance()});
+  v.querySelectorAll("[data-delbh]").forEach(function(b){b.addEventListener("click",function(){
+    confirmar("¿Borrar este registro de líquidos?",function(){state.balance=state.balance.filter(function(x){return x.id!==b.dataset.delbh});guardar();renderBalance()})})});
+  var cb=$("#copyBH"); if(cb) cb.addEventListener("click",function(){copiar(csvBH(diaSel))});
+}
+function calcDia(dia,peso,pac){
+  pac=pac||state;
+  var regs=pac.balance.filter(function(b){return diaBalance(b.t)===dia});
+  var tab={ingreso:{},egreso:{}}, tot={ingreso:{M:0,T:0,N:0},egreso:{M:0,T:0,N:0}};
+  regs.forEach(function(b){var tu=turnoDe(b.t);var c=tab[b.tipo][b.concepto]=tab[b.tipo][b.concepto]||{M:0,T:0,N:0};c[tu]+=b.ml;tot[b.tipo][tu]+=b.ml});
+  var ins=null;
+  if(pac.ajustes.insensibles&&peso!=null){ins={};TURNOS.forEach(function(t){ins[t.id]=Math.round(peso*0.5*t.h);tot.egreso[t.id]+=ins[t.id]})}
+  var sum=function(o){return o.M+o.T+o.N};
+  return {regs:regs,tab:tab,tot:tot,ins:ins,ing:sum(tot.ingreso),egr:sum(tot.egreso)};
+}
+function signo(n){return (n>0?"+":"")+fmt(n)}
+function hojaBalance(dia,peso){
+  var c=calcDia(dia,peso), bal=c.ing-c.egr;
+  var h='<div class="kpis">'+
+    '<div class="kpi"><div class="k">Ingresos 24 h</div><div class="v">'+fmt(c.ing)+' ml</div></div>'+
+    '<div class="kpi"><div class="k">Egresos 24 h</div><div class="v">'+fmt(c.egr)+' ml</div></div>'+
+    '<div class="kpi"><div class="k">Balance 24 h</div><div class="v '+(bal>0?"pos":bal<0?"neg":"")+'">'+signo(bal)+' ml</div></div>'+
+  '</div>';
+  h+='<div class="tablewrap"><table><thead><tr><th>Concepto</th>'+TURNOS.map(function(t){return '<th class="num">'+t.n+'<br><span style="font-weight:400;text-transform:none">'+t.d+'</span></th>'}).join("")+'<th class="num">Total 24 h</th></tr></thead><tbody>';
+  ["ingreso","egreso"].forEach(function(tipo){
+    h+='<tr><td colspan="5" style="padding-top:12px;font-weight:700;color:'+(tipo==="ingreso"?"#0f766e":"#b45309")+'">'+(tipo==="ingreso"?"INGRESOS":"EGRESOS")+'</td></tr>';
+    var nombres=Object.keys(c.tab[tipo]);
+    nombres.sort(function(a,b){return CONCEPTOS[tipo].indexOf(a)-CONCEPTOS[tipo].indexOf(b)});
+    nombres.forEach(function(k){var o=c.tab[tipo][k];h+='<tr><td>'+esc(k)+'</td>'+TURNOS.map(function(t){return '<td class="num">'+(o[t.id]?fmt(o[t.id]):"—")+'</td>'}).join("")+'<td class="num">'+fmt(o.M+o.T+o.N)+'</td></tr>'});
+    if(tipo==="egreso"&&c.ins){h+='<tr><td>Pérdidas insensibles <span class="hint">(0,5 ml/kg/h)</span></td>'+TURNOS.map(function(t){return '<td class="num">'+fmt(c.ins[t.id])+'</td>'}).join("")+'<td class="num">'+fmt(c.ins.M+c.ins.T+c.ins.N)+'</td></tr>'}
+    if(!nombres.length&&!(tipo==="egreso"&&c.ins)) h+='<tr><td colspan="5" class="hint">Sin registros</td></tr>';
+    var o=c.tot[tipo];
+    h+='<tr class="sub"><td>Total '+(tipo==="ingreso"?"ingresos":"egresos")+'</td>'+TURNOS.map(function(t){return '<td class="num">'+fmt(o[t.id])+'</td>'}).join("")+'<td class="num">'+fmt(o.M+o.T+o.N)+'</td></tr>';
+  });
+  h+='<tr class="tot"><td>BALANCE</td>'+TURNOS.map(function(t){var b=c.tot.ingreso[t.id]-c.tot.egreso[t.id];return '<td class="num '+(b>0?"pos":b<0?"neg":"")+'">'+signo(b)+'</td>'}).join("")+'<td class="num '+(bal>0?"pos":bal<0?"neg":"")+'">'+signo(bal)+'</td></tr>';
+  h+='</tbody></table></div>';
+  h+='<p class="hint">Balance = ingresos − egresos. Positivo: el paciente retiene líquidos; negativo: pierde más de lo que recibe.'+(c.ins?' Las pérdidas insensibles son una estimación y aumentan con la fiebre, la taquipnea o la sudoración.':'')+'</p>';
+  return h;
+}
+function tablaBH(dia){
+  var regs=state.balance.filter(function(b){return diaBalance(b.t)===dia}).sort(function(a,b){return b.t-a.t});
+  var h='<div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Hora</th><th>Turno</th><th>Tipo</th><th>Concepto</th><th class="num">ml</th><th>Observaciones</th><th></th></tr></thead><tbody>';
+  regs.forEach(function(b){var tu=TURNOS.filter(function(t){return t.id===turnoDe(b.t)})[0];
+    h+='<tr><td>'+fFecha(b.t)+'</td><td>'+fHora(b.t)+'</td><td>'+tu.n+'</td><td style="color:'+(b.tipo==="ingreso"?"#0f766e":"#b45309")+';font-weight:600">'+(b.tipo==="ingreso"?"Ingreso":"Egreso")+'</td><td>'+esc(b.concepto)+'</td><td class="num">'+fmt(b.ml)+'</td><td>'+esc(b.obs||"")+'</td><td><button class="small danger" data-delbh="'+b.id+'">Borrar</button></td></tr>'});
+  return h+'</tbody></table></div>';
+}
+function csvBH(dia){
+  var l=["Fecha;Hora;Turno;Tipo;Concepto;ml;Observaciones"];
+  state.balance.filter(function(b){return diaBalance(b.t)===dia}).sort(function(a,b){return a.t-b.t}).forEach(function(b){
+    l.push([fFecha(b.t)+"/"+new Date(b.t).getFullYear(),fHora(b.t),turnoDe(b.t),b.tipo,b.concepto,b.ml,(b.obs||"").replace(/;/g,",")].join(";"))});
+  return l.join("\n");
+}
+function evolucion(dias,peso){
+  var datos=dias.map(function(d){var c=calcDia(d,peso);return {d:d,ing:c.ing,egr:c.egr,bal:c.ing-c.egr}});
+  var max=Math.max.apply(null,datos.map(function(o){return Math.max(o.ing,o.egr)}).concat([1]));
+  var h='<div class="tablewrap"><table><thead><tr><th>Día (8 → 8 h)</th><th class="num">Ingresos</th><th class="num">Egresos</th><th class="num">Balance</th><th class="num">Acumulado</th><th style="width:40%"></th></tr></thead><tbody>';
+  var acu=0;
+  datos.forEach(function(o){acu+=o.bal;
+    h+='<tr><td>'+fDia(o.d)+'</td><td class="num">'+fmt(o.ing)+'</td><td class="num">'+fmt(o.egr)+'</td><td class="num '+(o.bal>0?"pos":o.bal<0?"neg":"")+'">'+signo(o.bal)+'</td><td class="num '+(acu>0?"pos":acu<0?"neg":"")+'">'+signo(acu)+'</td>'+
+    '<td><div style="height:8px;background:#0f766e;border-radius:4px;width:'+(o.ing/max*100)+'%;margin-bottom:3px" title="Ingresos"></div><div style="height:8px;background:#b45309;border-radius:4px;width:'+(o.egr/max*100)+'%" title="Egresos"></div></td></tr>'});
+  return h+'</tbody></table></div><p class="hint"><span style="color:#0f766e;font-weight:700">■</span> Ingresos &nbsp; <span style="color:#b45309;font-weight:700">■</span> Egresos</p>';
+}
+
+function copiar(txt){
+  try{navigator.clipboard.writeText(txt).then(function(){toast("Copiado: pégalo en Excel u Hojas de cálculo")},function(){toast("No se pudo copiar")})}catch(e){toast("No se pudo copiar")}
+}
+
+/* ---------- Arranque ---------- */
+activar(db.activo);
+render();
+try{var sy=sessionStorage.getItem("grafica-enf-scroll");if(sy){sessionStorage.removeItem("grafica-enf-scroll");setTimeout(function(){window.scrollTo(0,+sy)},50)}}catch(e){}
+window.addEventListener("hashchange",function(){var nv=location.hash==="#balance"?"balance":location.hash==="#resumen"?"resumen":"constantes";if(nv!==vista){vista=nv;render()}});
+if(window.claude&&typeof window.claude.use==="function"){
+  window.claude.use("artifact").then(function(a){
+    if(a&&typeof a.publish==="function"){artifactApi=a;canPublish=true;setStatus("Guardado","ok");
+      if((db.savedAt||0)>(SEED.savedAt||0)) guardar();}
+  }).catch(function(){});
+}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gráfica del equipo de enfermería</title>
+<style id="css">
+:root{
+  --temp:#d62828; --fc:#1d4ed8; --ta:#15803d; --fr:#111111;
+  --bg:#f6f7f9; --card:#ffffff; --line:#e3e6ea; --grid:#eef0f3; --grid2:#d9dde3;
+  --text:#1f2933; --muted:#66727f; --accent:#0f766e; --warn:#b45309;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.4}
+header.top{background:#fff;border-bottom:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header.top h1{font-size:19px;margin:0;font-weight:650;display:flex;align-items:center;gap:10px}
+.logo{display:inline-flex;align-items:center;gap:2px;flex:none}
+#status{font-size:12.5px;color:var(--muted)}
+#status.ok::before{content:"● ";color:#16a34a}
+#status.local::before{content:"● ";color:var(--warn)}
+main{max-width:1200px;margin:0 auto;padding:18px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{font-size:16px;margin:0 0 12px;font-weight:650}
+.card h3{font-size:14px;margin:14px 0 8px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.grid{display:grid;gap:10px}
+.pac{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+label{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted);gap:4px}
+input,select,textarea{font:inherit;color:var(--text);padding:7px 9px;border:1px solid #cfd5dc;border-radius:7px;background:#fff;min-width:0}
+input:focus,select:focus{outline:2px solid #99d5cf;border-color:var(--accent)}
+button{font:inherit;cursor:pointer;border-radius:7px;border:1px solid #cfd5dc;background:#fff;padding:7px 12px;color:var(--text)}
+button:hover{background:#f1f3f5}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{background:#0d655e}
+button.danger{color:#b91c1c}
+button.small{padding:3px 8px;font-size:12.5px}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tabs a{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:999px;text-decoration:none;color:var(--text);background:#fff;border:1px solid var(--line);font-weight:600;font-size:14px}
+.tabs a.on{background:var(--text);color:#fff;border-color:var(--text)}
+.form-cv{grid-template-columns:1.6fr repeat(5,1fr) 1.6fr auto;align-items:end}
+.form-bh{grid-template-columns:1.6fr 1fr 1.6fr 1fr 1.6fr auto;align-items:end}
+@media (max-width:900px){.form-cv,.form-bh{grid-template-columns:1fr 1fr}}
+.lab-temp{color:var(--temp)} .lab-fc{color:var(--fc)} .lab-ta{color:var(--ta)} .lab-fr{color:var(--fr)}
+.lab-temp,.lab-fc,.lab-ta,.lab-fr{font-weight:700}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:4px 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:22px;height:0;border-top:3px solid;display:inline-block}
+.chartwrap{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+#axes{flex:none;border-right:1px solid var(--grid2);background:#fcfcfd}
+#plotScroll{overflow-x:auto;flex:1}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.02em;background:#fafbfc}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+.alto{background:#fde8e8;font-weight:700;border-radius:4px;padding:1px 5px}
+.bajo{background:#e6effd;font-weight:700;border-radius:4px;padding:1px 5px}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.seg{display:inline-flex;border:1px solid #cfd5dc;border-radius:7px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:7px 12px}
+.seg button.on{background:var(--text);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:8px 0 14px}
+.kpi{border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+.kpi .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.kpi .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.pos{color:#1d4ed8} .neg{color:#b91c1c}
+tr.sub td{font-weight:700;background:#fafbfc}
+tr.tot td{font-weight:800;border-top:2px solid var(--text)}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.toolbar .sp{flex:1}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border-radius:999px;padding:7px 14px;font-size:14px;background:#fff}
+.chip.on .hint{color:inherit;opacity:.85}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.todos{border-style:solid;font-weight:600}
+.chip.todos.on{background:var(--text);border-color:var(--text)}
+.chip.nuevo{border-style:dashed;color:var(--accent);font-weight:600}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1f2933;color:#fff;padding:9px 16px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.show{opacity:1}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:10}
+.modal.show{display:flex}
+.modal .box{background:#fff;border-radius:10px;padding:18px;max-width:380px;width:90%}
+.modal .box p{margin:0 0 14px}
+.modal .row{display:flex;gap:8px;justify-content:flex-end}
+textarea{width:100%;min-height:90px;resize:vertical}
+.form-gen{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:end}
+.alerta{background:#fde8e8;border:1px solid #f1a9a9;color:#9b1c1c;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-weight:600}
+.alerta:empty{display:none}
+.med{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:10px}
+.medtop{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.tomas{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+button.slot{min-width:70px;height:38px;font-weight:700;border:2px solid #0f766e;color:#0f766e;background:#fff;padding:0 12px}
+button.slot.on{background:#0f766e;color:#fff}
+.estados{display:flex;gap:6px;flex-wrap:wrap}
+button.est{border-radius:999px;padding:6px 11px;font-size:14px;font-weight:600}
+button.est.on.ok{background:#15803d;border-color:#15803d;color:#fff}
+button.est.on.mid{background:#b45309;border-color:#b45309;color:#fff}
+button.est.on.bad{background:#b91c1c;border-color:#b91c1c;color:#fff}
+.xbtn{min-width:36px;height:32px;font-weight:800;color:#0f766e;border:2px solid #0f766e;background:#fff;padding:0 8px;font-size:15px}
+.xbtn:hover{background:#0f766e;color:#fff}
+button.hora{border-color:#0f766e;color:#0f766e;font-variant-numeric:tabular-nums}
+@media (max-width:700px){.tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}.tabs a{white-space:nowrap}}
+svg text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="application/json" id="state">{"pacientes":[],"activo":null,"savedAt":0}</script>
+<script id="app">
+(function(){
+"use strict";
+var PROF = false;
+var LSKEY = PROF ? "grafica-equipo-prof" : "grafica-equipo-v1";
+var ICO = {datos:"<svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><rect x='3' y='5' width='18' height='14' rx='2'/><circle cx='9' cy='11' r='2.2'/><path d='M5.5 16c.7-1.6 2-2.3 3.5-2.3s2.8.7 3.5 2.3M15 10h3.5M15 13.5h3.5'/></svg>",valoracion:"<svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><rect x='5' y='4' width='14' height='17' rx='2'/><path d='M9 4V3h6v1M9 11l2 2 4-4M9 17h6'/></svg>",constantes:"<svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z'/><path d='M7 12h2.5l1.5-3 2 5 1.5-2H17'/></svg>",balance:"<svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z'/><path d='M9.5 15a2.5 2.5 0 0 0 2.5 2.5'/></svg>",tratamiento:"<svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><rect x='3' y='9' width='18' height='6' rx='3' transform='rotate(-40 12 12)'/><path d='M9.5 7.2l7.3 7.3' transform='rotate(0 12 12)'/></svg>",cuidados:"<svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M3 18V7M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5'/><circle cx='7' cy='11' r='1.8'/></svg>",curas:"<svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><rect x='2.5' y='8.5' width='19' height='7' rx='3.5' transform='rotate(-35 12 12)'/><rect x='9' y='9.5' width='6' height='5' transform='rotate(-35 12 12)'/><path d='M11.2 11.3h.01M12.8 12.7h.01'/></svg>",pruebas:"<svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M9 3h6M10 3v6.5L5.5 18a2 2 0 0 0 1.8 3h9.4a2 2 0 0 0 1.8-3L14 9.5V3'/><path d='M8 15h8'/></svg>",incidencias:"<svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M12 3.5l9.5 16.5h-19z'/><path d='M12 10v4.5M12 17.2h.01'/></svg>"};
+/* ---------- Estado ---------- */
+/* db = {pacientes:[{id,paciente,constantes,balance,ajustes}], activo, savedAt}
+   state = paciente activo (se reasigna al cambiar de paciente) */
+function nuevoPaciente(){return {id:uid(),paciente:{nombre:"",hab:"",historia:"",edad:"",peso:"",ingreso:"",diagnostico:""},constantes:[],balance:[],ajustes:{insensibles:false},tto:[],admin:[],inc:{},cuidadosLista:[],cuidados:[],curas:[],pruebas:[]}}
+function migrar(raw){
+  if(!raw) return null;
+  if(raw.pacientes) return raw;
+  var p=nuevoPaciente();
+  p.paciente=raw.paciente||p.paciente;p.constantes=raw.constantes||[];p.balance=raw.balance||[];p.ajustes=raw.ajustes||p.ajustes;
+  var vacio=!p.constantes.length&&!p.balance.length&&!Object.keys(p.paciente).some(function(k){return p.paciente[k]});
+  return {pacientes:vacio?[]:[p],activo:vacio?null:p.id,savedAt:raw.savedAt||0};
+}
+var SEED = migrar(JSON.parse(document.getElementById("state").textContent));
+var db = SEED;
+try{
+  var ls = migrar(JSON.parse(localStorage.getItem(LSKEY) || "null"));
+  if(ls && (ls.savedAt||0) > (SEED.savedAt||0)) db = ls;
+}catch(e){}
+db.pacientes.forEach(function(p){completar(p)});
+if(!db.pacientes.length){var p0=nuevoPaciente();db.pacientes.push(p0);db.activo=p0.id}
+var state = null;
+function activar(id){
+  state = db.pacientes.filter(function(p){return p.id===id})[0] || db.pacientes[0];
+  db.activo = state.id; diaSel = null; fechaSel = ""; editTT = null; diaInc = null;
+}
+
+var artifactApi = null, canPublish = false, pubTimer = null;
+var VISTAS = ["datos","valoracion","constantes","balance","tratamiento","cuidados","curas","pruebas","incidencias"];
+function vistaDeHash(){var h=location.hash.replace("#","");return (h==="resumen"||VISTAS.indexOf(h)>=0)?h:"datos"}
+var vista = vistaDeHash();
+var tipoBH = "ingreso";
+var diaSel = null;
+
+var CONCEPTOS = {
+  ingreso:["Vía oral","Sueroterapia IV","Medicación IV","Nutrición enteral","Nutrición parenteral","Hemoderivados","Otros ingresos"],
+  egreso:["Diuresis","Deposiciones","Vómitos","Drenajes","Aspirado SNG","Sudoración","Otras pérdidas"]
+};
+var TURNOS = [{id:"M",n:"Mañana",d:"8–15 h",h:7},{id:"T",n:"Tarde",d:"15–22 h",h:7},{id:"N",n:"Noche",d:"22–8 h",h:10}];
+
+/* Escalas: 8 divisiones numeradas, cada una con 4 espacios iguales (T 0,25 · FC 5 · TA 5 · FR 1) */
+var ESC = {
+  temp:{min:34,max:42,paso:1,col:"var(--temp)",hex:"#d62828",lab:"T ª (°C)"},
+  fc:{min:40,max:200,paso:20,col:"var(--fc)",hex:"#1d4ed8",lab:"FC (lpm)"},
+  ta:{min:40,max:200,paso:20,col:"var(--ta)",hex:"#15803d",lab:"TA (mmHg)"},
+  fr:{min:4,max:36,paso:4,col:"var(--fr)",hex:"#111111",lab:"FR (rpm)"}
+};
+
+/* ---------- Utilidades ---------- */
+function $(s,r){return (r||document).querySelector(s)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function pad(n){return (n<10?"0":"")+n}
+function ahoraLocal(){var d=new Date();d.setSeconds(0,0);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
+function fFecha(t){var d=new Date(t);return pad(d.getDate())+"/"+pad(d.getMonth()+1)}
+function fHora(t){var d=new Date(t);return pad(d.getHours())+":"+pad(d.getMinutes())}
+function fFull(t){var d=new Date(t);return fFecha(t)+"/"+d.getFullYear()+" "+fHora(t)}
+function num(v){if(v===""||v==null)return null;var n=parseFloat(String(v).replace(",","."));return isNaN(n)?null:n}
+function fmt(n,dec){if(n==null)return "";return Number(n).toLocaleString("es-ES",{minimumFractionDigits:dec||0,maximumFractionDigits:dec||0})}
+function toast(m){var t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove("show")},1800)}
+function confirmar(msg,ok){var m=$("#modal");$("#modalMsg").textContent=msg;m.classList.add("show");
+  $("#modalOk").onclick=function(){m.classList.remove("show");ok()};$("#modalNo").onclick=function(){m.classList.remove("show")}}
+
+/* Día de balance: de 8:00 a 8:00 */
+function diaBalance(t){var d=new Date(t-8*3600000);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function fDia(k){var p=k.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+function turnoDe(t){var h=new Date(t).getHours();return (h>=8&&h<15)?"M":(h>=15&&h<22)?"T":"N"}
+
+/* Rangos de referencia (adulto) para resaltar */
+function marca(tipo,v){
+  if(v==null)return "";
+  var r={temp:[36,38],fc:[60,100],tas:[90,140],tad:[60,90],fr:[12,20]}[tipo];
+  if(tipo==="temp"){ if(v>=38)return "alto"; if(v<36)return "bajo"; return ""; }
+  if(v>r[1]||(tipo==="tas"&&v>=140)||(tipo==="tad"&&v>=90))return "alto";
+  if(v<r[0])return "bajo"; return "";
+}
+function celda(tipo,v,dec){if(v==null)return "—";var c=marca(tipo,v);var s=fmt(v,dec);return c?'<span class="'+c+'">'+s+'</span>':s}
+
+/* ---------- Guardado ---------- */
+function guardar(){
+  db.savedAt = Date.now();
+  try{localStorage.setItem(LSKEY,JSON.stringify(db))}catch(e){}
+  if(canPublish){
+    setStatus("Guardando…","");
+    clearTimeout(pubTimer);
+    pubTimer=setTimeout(publicar,1200);
+  }else{
+    setStatus("Guardado solo en este navegador","local");
+  }
+}
+function documento(){
+  var css=document.getElementById("css").textContent;
+  var app=document.getElementById("app").textContent;
+  var json=JSON.stringify(db).replace(/</g,"\\u003c");
+  return "<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Gráfica del equipo de enfermería</title>\n<style id=\"css\">"+css+"</style>\n</head>\n<body>\n<div id=\"root\"></div>\n<script type=\"application/json\" id=\"state\">"+json+"<\/script>\n<script id=\"app\">"+app+"<\/script>\n</body>\n</html>\n";
+}
+function publicar(){
+  if(!artifactApi)return;
+  try{sessionStorage.setItem("grafica-enf-scroll",String(window.scrollY))}catch(e){}
+  Promise.resolve().then(function(){return artifactApi.publish(documento())}).then(function(){
+    setStatus("Guardado","ok");
+  }).catch(function(err){
+    var c=(err&&(err.code||err.name||err.message))||"";
+    if(/not_granted|not_writer/.test(c)){canPublish=false;setStatus("Solo lectura · guardado en este navegador","local")}
+    else if(/conflict/.test(c)){setStatus("Otra pestaña guardó a la vez; recargando","local")}
+    else setStatus("No se pudo guardar en la página · guardado en este navegador","local");
+  });
+}
+function descargarTrabajo(){
+  var msg=$("#envioMsg"), nom=($("#alumnoNombre").value||"").trim();
+  if(!nom){msg.style.color="#b91c1c";msg.textContent="Escribe tu nombre para poder descargar.";return}
+  try{localStorage.setItem("grafica-enf-alumno",nom)}catch(e){}
+  var mios=db.pacientes.filter(function(p){return !p.alumno});
+  var datos={tipo:"grafica-enfermeria",version:1,alumno:nom,fecha:new Date().toISOString(),pacientes:mios};
+  var limpio=nom.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_+|_+$/g,"")||"alumno";
+  var blob=new Blob([JSON.stringify(datos)],{type:"application/json"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="Grafica_"+limpio+".json";
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500);
+  msg.style.color="#15803d";msg.textContent="Archivo descargado ("+mios.length+" paciente(s)). Súbelo a Classroom.";
+}
+function cargarArchivos(files){
+  var msg=$("#cargaMsg"), lista=Array.prototype.slice.call(files||[]);
+  if(!lista.length)return;
+  var nuevos=0, alumnos=[], errores=0, pend=lista.length;
+  lista.forEach(function(f){
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var d=JSON.parse(rd.result);
+        if(!d||d.tipo!=="grafica-enfermeria"||!Array.isArray(d.pacientes))throw 0;
+        var al=String(d.alumno||"Sin nombre").slice(0,80);
+        d.pacientes.forEach(function(p){
+          if(!p||!p.paciente||!Array.isArray(p.constantes)||!Array.isArray(p.balance))return;
+          var origen=al+"|"+p.id;
+          db.pacientes=db.pacientes.filter(function(x){return x.origen!==origen});
+          p.origen=origen;p.alumno=al;p.id=uid();
+          completar(p);
+          db.pacientes.push(p);nuevos++;
+        });
+        if(alumnos.indexOf(al)<0)alumnos.push(al);
+      }catch(e){errores++}
+      if(--pend===0){
+        guardar();render();
+        var m=$("#cargaMsg");
+        if(m){m.style.color=errores?"#b91c1c":"#15803d";m.textContent=nuevos+" paciente(s) cargados de "+alumnos.length+" alumno(s)"+(errores?" · "+errores+" archivo(s) no válidos":"")}
+      }
+    };
+    rd.onerror=function(){errores++;if(--pend===0){render()}};
+    rd.readAsText(f);
+  });
+}
+function setStatus(t,c){var s=$("#status");if(!s)return;s.textContent=t;s.className=c||""}
+
+/* ---------- Render principal ---------- */
+function render(){
+  var r=$("#root");
+  r.innerHTML =
+  '<header class="top"><h1><span class="logo" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 48 48"><path d="M17 14v-3a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v3" fill="none" stroke="#0f766e" stroke-width="3" stroke-linecap="round"/><rect x="5" y="14" width="38" height="27" rx="5" fill="#0f766e"/><rect x="21" y="20" width="6" height="15" rx="1.2" fill="#fff"/><rect x="16.5" y="24.5" width="15" height="6" rx="1.2" fill="#fff"/></svg><svg width="40" height="34" viewBox="0 0 56 48" style="transform:rotate(-30deg)"><path d="M3 24h9M3 17v14" stroke="#0f766e" stroke-width="3" stroke-linecap="round"/><path d="M12 16v16" stroke="#0f766e" stroke-width="3" stroke-linecap="round"/><rect x="14" y="18" width="26" height="12" rx="2.5" fill="#e6f4f2" stroke="#0f766e" stroke-width="2.5"/><rect x="26" y="20.5" width="12" height="7" rx="1" fill="#0f766e" opacity=".85"/><path d="M20 18v4M24 18v3M28 18v4" stroke="#0f766e" stroke-width="1.5"/><path d="M40 24h14" stroke="#0f766e" stroke-width="2.5" stroke-linecap="round"/></svg></span><span>Gráfica del equipo de enfermería'+(PROF?' · Profesorado':'')+'</span></h1><span id="status"></span>'+'<button class="small primary" id="btnEnviar">'+(PROF?'Cargar entregas':'Entregar trabajo')+'</button>'+'</header>'+
+  '<main>'+
+   '<section class="card"><div class="toolbar" style="margin-bottom:8px"><h2 style="margin:0">Pacientes</h2><span class="hint" style="margin:0">'+db.pacientes.length+' en total</span></div>'+
+    '<div class="chips">'+
+     '<button class="chip todos'+(vista==="resumen"?" on":"")+'" id="btnResumen">Resumen de todos</button>'+
+     db.pacientes.map(function(p){return '<button class="chip'+(vista!=="resumen"&&p.id===state.id?" on":"")+'" data-pid="'+p.id+'">'+etiquetaPac(p)+'</button>'}).join("")+
+     '<button class="chip nuevo" id="btnNuevo">+ Nuevo paciente</button>'+
+    '</div></section>'+
+   (vista==="resumen" ? '<div id="vista"></div>' :
+   '<div id="alertaAlergias">'+textoAlerta()+'</div>'+
+   '<nav class="tabs">'+[["datos","Datos del paciente"],["valoracion","Valoración al ingreso"],["constantes","Constantes vitales"],["balance","Balance hídrico"],["tratamiento","Tratamiento"],["cuidados","Cuidados de enfermería"],["curas","Curas"],["pruebas","Pruebas diagnósticas"],["incidencias","Incidencias"]].map(function(t){return '<a href="#'+t[0]+'" data-v="'+t[0]+'" class="'+(vista===t[0]?"on":"")+'">'+ICO[t[0]]+'<span>'+t[1]+'</span></a>'}).join("")+'</nav>'+
+   '<div id="vista"></div>')+
+  '</main>'+
+  '<div id="toast"></div>'+
+  '<div class="modal" id="modal"><div class="box"><p id="modalMsg"></p><div class="row"><button id="modalNo">Cancelar</button><button class="primary" id="modalOk">Aceptar</button></div></div></div>';
+
+  function irA(v){vista=v;try{history.replaceState(null,"","#"+v)}catch(_){location.hash=v}}
+  r.querySelectorAll("[data-pid]").forEach(function(b){b.addEventListener("click",function(){
+    activar(b.dataset.pid); if(vista==="resumen") irA("datos"); render(); window.scrollTo(0,0);
+  })});
+  $("#btnResumen").addEventListener("click",function(){irA("resumen");render()});
+  $("#btnEnviar").addEventListener("click",function(){irA("resumen");render();var e=$("#envio");if(e)e.scrollIntoView({behavior:"smooth"})});
+  $("#btnNuevo").addEventListener("click",function(){
+    var p=nuevoPaciente();db.pacientes.push(p);activar(p.id);irA("datos");guardar();render();
+    var n=r.querySelector('[data-p="nombre"]');if(n)n.focus();toast("Paciente nuevo creado: rellena sus datos");
+  });
+  r.querySelectorAll(".tabs a").forEach(function(a){
+    a.addEventListener("click",function(e){e.preventDefault();vista=a.dataset.v;try{history.replaceState(null,"","#"+vista)}catch(_){location.hash=vista}
+      r.querySelectorAll(".tabs a").forEach(function(b){b.classList.toggle("on",b===a)});renderVista()});
+  });
+  renderVista();
+  setStatus(canPublish?"Guardado":"Guardado en este navegador",canPublish?"ok":"local");
+}
+function campoP(k,l,type){return '<label>'+l+'<input data-p="'+k+'" type="'+(type||"text")+'" value="'+esc(state.paciente[k]||"")+'"></label>'}
+function etiquetaPac(p){
+  var n=p.paciente.nombre?esc(p.paciente.nombre):'<i>Sin nombre</i>';
+  return (p.alumno?'<span class="hint" style="margin:0">['+esc(p.alumno)+']</span> ':'')+(p.paciente.hab?'<b>Hab. '+esc(p.paciente.hab)+'</b> · ':'')+n;
+}
+function renderVista(){ var f={resumen:renderResumen,datos:renderDatos,valoracion:renderValoracion,constantes:renderConstantes,balance:renderBalance,tratamiento:renderTratamiento,cuidados:renderCuidados,curas:renderCuras,pruebas:renderPruebas,incidencias:renderIncidencias}; (f[vista]||renderDatos)(); }
+
+/* ---------- Resumen de todos los pacientes ---------- */
+function renderResumen(){
+  var v=$("#vista");
+  var lista=db.pacientes.slice().sort(function(a,b){return String(a.paciente.hab||"~").localeCompare(String(b.paciente.hab||"~"),"es",{numeric:true})});
+  var h='<section class="card"><h2>Resumen de pacientes</h2><div class="tablewrap"><table><thead><tr>'+
+    '<th>Hab.</th><th>Paciente</th><th>Diagnóstico</th><th>Últimas constantes</th><th class="num lab-ta">TA</th><th class="num lab-fc">FC</th><th class="num lab-temp">T ª</th><th class="num lab-fr">FR</th><th class="num">Balance último día</th><th></th></tr></thead><tbody>';
+  lista.forEach(function(p){
+    var u=p.constantes.slice().sort(function(a,b){return b.t-a.t})[0];
+    var bal="—";
+    if(p.balance.length){
+      var ult=p.balance.map(function(b){return diaBalance(b.t)}).sort().pop();
+      var c=calcDia(ult,num(p.paciente.peso),p);var b=c.ing-c.egr;
+      bal='<span class="'+(b>0?"pos":b<0?"neg":"")+'" style="font-weight:700">'+signo(b)+' ml</span> <span class="hint">('+fDia(ult).slice(0,5)+')</span>';
+    }
+    h+='<tr><td>'+esc(p.paciente.hab||"—")+'</td><td>'+(p.alumno?'<span class="hint" style="margin:0">['+esc(p.alumno)+']</span><br>':'')+'<b>'+(p.paciente.nombre?esc(p.paciente.nombre):'<i>Sin nombre</i>')+'</b>'+(p.paciente.edad?' <span class="hint">'+esc(p.paciente.edad)+' años</span>':'')+'</td>'+
+      '<td style="white-space:normal;max-width:220px">'+esc(p.paciente.diagnostico||"")+'</td>'+
+      (u? '<td>'+fFull(u.t)+'</td><td class="num">'+(u.tas!=null?celda("tas",u.tas)+"/"+celda("tad",u.tad):"—")+'</td><td class="num">'+celda("fc",u.fc)+'</td><td class="num">'+celda("temp",u.temp,1)+'</td><td class="num">'+celda("fr",u.fr)+'</td>'
+         : '<td class="hint">Sin registros</td><td></td><td></td><td></td><td></td>')+
+      '<td class="num">'+bal+'</td><td><button class="small" data-abrir="'+p.id+'">Abrir</button></td></tr>';
+  });
+  h+='</tbody></table></div><p class="hint">Ordenados por habitación. Se resaltan en rojo o azul los valores fuera del rango de referencia del adulto.</p></section>';
+  var hayEntregas=db.pacientes.some(function(p){return p.alumno});
+  if(!PROF){
+    var nom="";try{nom=localStorage.getItem("grafica-enf-alumno")||""}catch(e){}
+    h+='<section class="card" id="envio"><h2>Entregar mi trabajo</h2>'+
+      '<p class="hint" style="margin-top:0">Escribe tu nombre y pulsa «Descargar mi trabajo». Se guarda un archivo con todos tus pacientes. Súbelo a Classroom como entrega.</p>'+
+      '<label>Tu nombre y apellidos<input id="alumnoNombre" type="text" autocomplete="name" value="'+esc(nom)+'"></label>'+
+      '<div class="toolbar" style="margin-top:10px"><button class="primary" id="btnDescargar">Descargar mi trabajo</button><span id="envioMsg" class="hint"></span></div></section>';
+  }else{
+    h+='<section class="card" id="envio"><h2>Corrección: cargar entregas</h2>'+
+      '<p class="hint" style="margin-top:0">Carga los archivos que han subido los alumnos a Classroom (uno o varios a la vez). Sus pacientes aparecen marcados con el nombre del alumno y se abren como cualquier otro.</p>'+
+      '<div class="toolbar"><button class="primary" id="btnCargar">Cargar archivos</button>'+(hayEntregas?'<button class="danger" id="btnQuitar">Quitar entregas cargadas</button>':'')+'<input type="file" id="fileCargar" accept=".json,application/json" multiple style="display:none"><span id="cargaMsg" class="hint"></span></div></section>';
+  }
+  v.innerHTML=h;
+  var bdsc=$("#btnDescargar"); if(bdsc) bdsc.addEventListener("click",descargarTrabajo);
+  var bcg=$("#btnCargar"); if(bcg){bcg.addEventListener("click",function(){$("#fileCargar").click()});
+    $("#fileCargar").addEventListener("change",function(e){cargarArchivos(e.target.files);e.target.value=""})}
+  var bq=$("#btnQuitar"); if(bq) bq.addEventListener("click",function(){
+    confirmar("¿Quitar de esta pantalla todos los pacientes cargados de alumnos? Tus propios pacientes no se tocan.",function(){
+      db.pacientes=db.pacientes.filter(function(p){return !p.alumno});
+      if(!db.pacientes.length) db.pacientes.push(nuevoPaciente());
+      activar(db.pacientes[0].id);guardar();render();toast("Entregas quitadas")})});
+  v.querySelectorAll("[data-abrir]").forEach(function(b){b.addEventListener("click",function(){
+    activar(b.dataset.abrir);vista="datos";try{history.replaceState(null,"","#datos")}catch(_){}render();window.scrollTo(0,0);
+  })});
+}
+
+/* ---------- Constantes ---------- */
+function renderConstantes(){
+  var v=$("#vista");
+  var regs=state.constantes.slice().sort(function(a,b){return a.t-b.t});
+  v.innerHTML =
+  '<section class="card"><h2>Nuevo registro de constantes</h2>'+
+   '<form id="fCV" class="grid form-cv" autocomplete="off">'+
+    '<label>Fecha y hora<input type="datetime-local" name="t" required value="'+ahoraLocal()+'"></label>'+
+    '<label><span class="lab-ta">TA sistólica</span><input name="tas" type="number" inputmode="numeric" min="40" max="300" placeholder="mmHg"></label>'+
+    '<label><span class="lab-ta">TA diastólica</span><input name="tad" type="number" inputmode="numeric" min="20" max="200" placeholder="mmHg"></label>'+
+    '<label><span class="lab-fc">FC</span><input name="fc" type="number" inputmode="numeric" min="20" max="250" placeholder="lpm"></label>'+
+    '<label><span class="lab-temp">Temperatura</span><input name="temp" type="number" inputmode="decimal" step="0.1" min="30" max="44" placeholder="°C"></label>'+
+    '<label><span class="lab-fr">FR</span><input name="fr" type="number" inputmode="numeric" min="2" max="70" placeholder="rpm"></label>'+
+    '<label>Observaciones<input name="obs" type="text" placeholder="Opcional"></label>'+
+    '<button class="primary" type="submit">Añadir</button>'+
+   '</form><p class="hint" id="cvMsg">Puedes dejar en blanco las constantes que no hayas tomado. La TA necesita sistólica y diastólica.</p>'+
+  '</section>'+
+  '<section class="card"><h2>Gráfica</h2>'+
+   '<div class="legend">'+
+    '<span><i class="sw" style="border-color:var(--ta)"></i><b class="lab-ta">TA</b> (barra sistólica–diastólica)</span>'+
+    '<span><i class="sw" style="border-color:var(--fc)"></i><b class="lab-fc">FC</b></span>'+
+    '<span><i class="sw" style="border-color:var(--temp)"></i><b class="lab-temp">Temperatura</b></span>'+
+    '<span><i class="sw" style="border-color:var(--fr)"></i><b class="lab-fr">FR</b></span>'+
+   '</div>'+
+   (regs.length? '<div class="chartwrap"><div id="axes"></div><div id="plotScroll"><div id="plot"></div></div></div><p class="hint">Entre dos números consecutivos hay 4 espacios iguales. Cada espacio vale: <b class="lab-temp">T ª 0,25 °C</b> · <b class="lab-fc">FC 5 lpm</b> · <b class="lab-ta">TA 5 mmHg</b> · <b class="lab-fr">FR 1 rpm</b>.</p>'
+     : '<div class="empty">Aún no hay registros. Añade el primero arriba y aparecerá aquí.</div>')+
+  '</section>'+
+  '<section class="card"><div class="toolbar"><h2 style="margin:0">Registros</h2><span class="sp"></span>'+
+   (regs.length?'<button class="small" id="copyCV">Copiar tabla (CSV)</button>':'')+'</div>'+
+   (regs.length? tablaCV(regs) : '<div class="empty">Sin registros.</div>')+
+   '<p class="hint">Resaltado <span class="alto">rojo</span> = por encima del rango de referencia en adultos; <span class="bajo">azul</span> = por debajo. Referencias: T 36–37,9 °C · FC 60–100 lpm · TA &lt;140/90 y TAS ≥90 mmHg · FR 12–20 rpm.</p>'+
+  '</section>';
+
+  $("#fCV").addEventListener("submit",function(e){
+    e.preventDefault();
+    var f=e.target, msg=$("#cvMsg");
+    var t=new Date(f.t.value).getTime();
+    var reg={id:uid(),t:t,tas:num(f.tas.value),tad:num(f.tad.value),fc:num(f.fc.value),temp:num(f.temp.value),fr:num(f.fr.value),obs:f.obs.value.trim()};
+    if(isNaN(t)){msg.textContent="Indica la fecha y la hora.";return}
+    if((reg.tas==null)!==(reg.tad==null)){msg.textContent="Para la TA rellena sistólica y diastólica.";msg.style.color="#b91c1c";return}
+    if(reg.tas!=null&&reg.tad>=reg.tas){msg.textContent="La diastólica debe ser menor que la sistólica.";msg.style.color="#b91c1c";return}
+    if(reg.tas==null&&reg.fc==null&&reg.temp==null&&reg.fr==null){msg.textContent="Introduce al menos una constante.";msg.style.color="#b91c1c";return}
+    state.constantes.push(reg);guardar();renderConstantes();toast("Registro añadido");
+  });
+  v.querySelectorAll("[data-delcv]").forEach(function(b){b.addEventListener("click",function(){
+    confirmar("¿Borrar este registro de constantes?",function(){state.constantes=state.constantes.filter(function(x){return x.id!==b.dataset.delcv});guardar();renderConstantes()})})});
+  var cp=$("#copyCV"); if(cp) cp.addEventListener("click",function(){copiar(csvCV(regs))});
+  if(regs.length) dibujarGrafica(regs);
+}
+function tablaCV(regs){
+  var h='<div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Hora</th><th class="num lab-ta">TA (mmHg)</th><th class="num lab-fc">FC</th><th class="num lab-temp">T ª</th><th class="num lab-fr">FR</th><th>Observaciones</th><th></th></tr></thead><tbody>';
+  regs.slice().reverse().forEach(function(r){
+    var ta = r.tas!=null ? celda("tas",r.tas)+" / "+celda("tad",r.tad) : "—";
+    h+='<tr><td>'+fFecha(r.t)+'/'+new Date(r.t).getFullYear()+'</td><td>'+fHora(r.t)+'</td><td class="num">'+ta+'</td><td class="num">'+celda("fc",r.fc)+'</td><td class="num">'+celda("temp",r.temp,1)+'</td><td class="num">'+celda("fr",r.fr)+'</td><td>'+esc(r.obs||"")+'</td><td><button class="small danger" data-delcv="'+r.id+'">Borrar</button></td></tr>';
+  });
+  return h+'</tbody></table></div>';
+}
+function csvCV(regs){
+  var l=["Fecha;Hora;TAS;TAD;FC;Temperatura;FR;Observaciones"];
+  regs.forEach(function(r){l.push([fFecha(r.t)+"/"+new Date(r.t).getFullYear(),fHora(r.t),r.tas==null?"":r.tas,r.tad==null?"":r.tad,r.fc==null?"":r.fc,r.temp==null?"":String(r.temp).replace(".",","),r.fr==null?"":r.fr,(r.obs||"").replace(/;/g,",")].join(";"))});
+  return l.join("\n");
+}
+
+function dibujarGrafica(regs){
+  var TOP=24, H=512, BOT=56, DIV=8, SUB=4, COLW=64, PADL=24, PADR=30;
+  var totalH=TOP+H+BOT;
+  function fmtEje(v){return Number.isInteger(v)?String(v):String(v).replace(".",",")}
+  function y(v,s){var e=ESC[s];var c=Math.max(e.min,Math.min(e.max,v));return TOP+H*(1-(c-e.min)/(e.max-e.min))}
+  /* Ejes (columnas de escala, como en la gráfica en papel) */
+  var cols=["ta","fc","temp","fr"], AW=58, ax='<svg width="'+(AW*cols.length)+'" height="'+totalH+'" role="img" aria-label="Escalas">';
+  cols.forEach(function(s,i){
+    var e=ESC[s], x=i*AW+AW/2;
+    ax+='<text x="'+x+'" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="'+e.hex+'">'+e.lab.split(" ")[0]+'</text>';
+    var bx=i*AW+9;
+    ax+='<line x1="'+bx+'" y1="'+TOP+'" x2="'+bx+'" y2="'+(TOP+H)+'" stroke="'+e.hex+'" stroke-width="3" stroke-opacity=".55"/>';
+    for(var j=0;j<=DIV*SUB;j++){if(j%SUB===0)continue;var ym=TOP+H*(1-j/(DIV*SUB));
+      ax+='<line x1="'+bx+'" y1="'+ym+'" x2="'+(bx+5)+'" y2="'+ym+'" stroke="'+e.hex+'" stroke-width="1.5" stroke-opacity=".5"/>';}
+    for(var k=0;k<=DIV;k++){var val=e.min+k*e.paso;var yy=TOP+H*(1-k/DIV);
+      ax+='<line x1="'+bx+'" y1="'+yy+'" x2="'+(bx+10)+'" y2="'+yy+'" stroke="'+e.hex+'" stroke-width="3" stroke-opacity=".55"/>'+
+        '<text x="'+(bx+14)+'" y="'+(yy+4)+'" text-anchor="start" font-size="12" font-weight="700" fill="'+e.hex+'">'+fmtEje(val)+'</text>';}
+    ax+='<text x="'+x+'" y="'+(TOP+H+22)+'" text-anchor="middle" font-size="10" fill="#66727f">'+e.lab.replace(/^[^(]*/,"")+'</text>';
+    if(i>0) ax+='<line x1="'+(i*AW)+'" y1="0" x2="'+(i*AW)+'" y2="'+totalH+'" stroke="#e3e6ea"/>';
+  });
+  ax+='</svg>';
+  $("#axes").innerHTML=ax;
+
+  var n=regs.length, W=Math.max(PADL+PADR+n*COLW, 600);
+  function x(i){return PADL+COLW/2+i*COLW}
+  var s='<svg width="'+W+'" height="'+totalH+'" role="img" aria-label="Gráfica de constantes vitales">';
+  /* Cuadrícula */
+  for(var k=0;k<=DIV*SUB;k++){var yy=TOP+H*k/(DIV*SUB);var mayor=k%SUB===0;
+    s+='<line x1="0" y1="'+yy+'" x2="'+W+'" y2="'+yy+'" stroke="'+(mayor?"#8d97a3":"#e3e6ea")+'" stroke-width="'+(mayor?1.5:1)+'"/>';}
+  /* Línea de 37 °C */
+  var y37=y(37,"temp");
+  s+='<line x1="0" y1="'+y37+'" x2="'+W+'" y2="'+y37+'" stroke="#d62828" stroke-dasharray="5 4" stroke-opacity=".45"/>';
+  /* Columnas por registro y cambio de día */
+  var diaAnt=null;
+  regs.forEach(function(r,i){
+    var xc=x(i), d=fFecha(r.t);
+    s+='<line x1="'+(xc-COLW/2)+'" y1="'+TOP+'" x2="'+(xc-COLW/2)+'" y2="'+(TOP+H)+'" stroke="'+(d!==diaAnt&&i>0?"#9aa3ad":"#f1f2f4")+'"/>';
+    s+='<text x="'+xc+'" y="'+(TOP+H+20)+'" text-anchor="middle" font-size="12" font-weight="'+(d!==diaAnt?"700":"400")+'" fill="#1f2933">'+(d!==diaAnt?d:"")+'</text>';
+    s+='<text x="'+xc+'" y="'+(TOP+H+37)+'" text-anchor="middle" font-size="12" fill="#66727f">'+fHora(r.t)+'</text>';
+    diaAnt=d;
+  });
+  /* Líneas */
+  function linea(campo,esc,color,ancho,dash){
+    var pts=[];regs.forEach(function(r,i){if(r[campo]!=null)pts.push(x(i)+","+y(r[campo],esc))});
+    if(pts.length>1) s+='<polyline points="'+pts.join(" ")+'" fill="none" stroke="'+color+'" stroke-width="'+ancho+'" stroke-linejoin="round"'+(dash?' stroke-dasharray="'+dash+'"':'')+'/>';
+  }
+  /* TA: barra vertical sistólica–diastólica con topes */
+  regs.forEach(function(r,i){
+    if(r.tas==null)return;
+    var xc=x(i)-12, y1=y(r.tas,"ta"), y2=y(r.tad,"ta");
+    s+='<g><title>TA '+r.tas+'/'+r.tad+' mmHg · '+fFull(r.t)+'</title>'+
+      '<line x1="'+xc+'" y1="'+y1+'" x2="'+xc+'" y2="'+y2+'" stroke="#15803d" stroke-width="3"/>'+
+      '<path d="M'+(xc-6)+' '+(y1-6)+' L'+xc+' '+y1+' L'+(xc+6)+' '+(y1-6)+'" fill="none" stroke="#15803d" stroke-width="2.5"/>'+
+      '<path d="M'+(xc-6)+' '+(y2+6)+' L'+xc+' '+y2+' L'+(xc+6)+' '+(y2+6)+'" fill="none" stroke="#15803d" stroke-width="2.5"/>'+
+      '<text x="'+(xc-4)+'" y="'+(y1-9)+'" text-anchor="middle" font-size="10" fill="#15803d">'+r.tas+'</text>'+
+      '<text x="'+(xc-4)+'" y="'+(y2+18)+'" text-anchor="middle" font-size="10" fill="#15803d">'+r.tad+'</text></g>';
+  });
+  linea("fr","fr","#111111",2);
+  linea("fc","fc","#1d4ed8",2.2);
+  linea("temp","temp","#d62828",2.5);
+  /* Puntos */
+  regs.forEach(function(r,i){
+    var xc=x(i);
+    if(r.fr!=null){var yf=y(r.fr,"fr");s+='<g><title>FR '+r.fr+' rpm · '+fFull(r.t)+'</title><path d="M'+(xc-4.5)+' '+(yf-4.5)+' L'+(xc+4.5)+' '+(yf+4.5)+' M'+(xc+4.5)+' '+(yf-4.5)+' L'+(xc-4.5)+' '+(yf+4.5)+'" stroke="#111" stroke-width="2.2"/><rect x="'+(xc-8)+'" y="'+(yf-8)+'" width="16" height="16" fill="transparent"/></g>'}
+    if(r.fc!=null){var yc=y(r.fc,"fc");s+='<g><title>FC '+r.fc+' lpm · '+fFull(r.t)+'</title><circle cx="'+xc+'" cy="'+yc+'" r="5" fill="#fff" stroke="#1d4ed8" stroke-width="2.5"/></g>'}
+    if(r.temp!=null){var yt=y(r.temp,"temp");s+='<g><title>Temperatura '+fmt(r.temp,1)+' °C · '+fFull(r.t)+'</title><circle cx="'+xc+'" cy="'+yt+'" r="5.5" fill="#d62828" stroke="#fff" stroke-width="1.5"/></g>'}
+  });
+  s+='</svg>';
+  $("#plot").innerHTML=s;
+  var sc=$("#plotScroll"); sc.scrollLeft=sc.scrollWidth;
+}
+
+/* ---------- Balance hídrico ---------- */
+function renderBalance(){
+  var v=$("#vista");
+  var dias=[];state.balance.forEach(function(b){var d=diaBalance(b.t);if(dias.indexOf(d)<0)dias.push(d)});
+  dias.sort();
+  if(!diaSel||dias.indexOf(diaSel)<0) diaSel=dias.length?dias[dias.length-1]:null;
+  var peso=num(state.paciente.peso);
+
+  v.innerHTML =
+  '<section class="card"><h2>Nuevo registro de líquidos</h2>'+
+   '<form id="fBH" class="grid form-bh" autocomplete="off">'+
+    '<label>Fecha y hora<input type="datetime-local" name="t" required value="'+ahoraLocal()+'"></label>'+
+    '<label>Tipo<span class="seg"><button type="button" data-tipo="ingreso" class="'+(tipoBH==="ingreso"?"on":"")+'">Ingreso</button><button type="button" data-tipo="egreso" class="'+(tipoBH==="egreso"?"on":"")+'">Egreso</button></span></label>'+
+    '<label>Concepto<select name="concepto">'+CONCEPTOS[tipoBH].map(function(c){return '<option>'+c+'</option>'}).join("")+'</select></label>'+
+    '<label>Volumen (ml)<input name="ml" type="number" inputmode="numeric" min="1" max="10000" required placeholder="ml"></label>'+
+    '<label>Observaciones<input name="obs" type="text" placeholder="Opcional (p. ej. SSF 0,9 %)"></label>'+
+    '<button class="primary" type="submit">Añadir</button>'+
+   '</form><p class="hint" id="bhMsg">Turnos: mañana 8–15 h, tarde 15–22 h, noche 22–8 h. El día de balance va de 8:00 a 8:00.</p>'+
+  '</section>'+
+  '<section class="card"><div class="toolbar"><h2 style="margin:0">Hoja de balance</h2><span class="sp"></span>'+
+   (dias.length?'<label style="flex-direction:row;align-items:center;gap:8px">Día<select id="selDia">'+dias.slice().reverse().map(function(d){return '<option value="'+d+'"'+(d===diaSel?" selected":"")+'>'+fDia(d)+' (8:00 → 8:00)</option>'}).join("")+'</select></label>':'')+
+   '<label style="flex-direction:row;align-items:center;gap:6px;color:var(--text)"><input type="checkbox" id="chkIns"'+(state.ajustes.insensibles?" checked":"")+'> Incluir pérdidas insensibles</label>'+
+  '</div>'+
+  (state.ajustes.insensibles && peso==null ? '<p class="hint" style="color:#b45309">Para calcular las pérdidas insensibles, indica el peso del paciente en la pestaña «Datos del paciente».</p>':'')+
+  (diaSel? hojaBalance(diaSel,peso) : '<div class="empty">Aún no hay registros de líquidos.</div>')+
+  '</section>'+
+  '<section class="card"><div class="toolbar"><h2 style="margin:0">Registros del día</h2><span class="sp"></span>'+(diaSel?'<button class="small" id="copyBH">Copiar día (CSV)</button>':'')+'</div>'+
+   (diaSel? tablaBH(diaSel) : '<div class="empty">Sin registros.</div>')+
+  '</section>'+
+  (dias.length>1? '<section class="card"><h2>Evolución por días</h2>'+evolucion(dias,peso)+'</section>':'');
+
+  v.querySelectorAll("[data-tipo]").forEach(function(b){b.addEventListener("click",function(){
+    tipoBH=b.dataset.tipo;
+    v.querySelectorAll("[data-tipo]").forEach(function(o){o.classList.toggle("on",o===b)});
+    $("#fBH").concepto.innerHTML=CONCEPTOS[tipoBH].map(function(c){return '<option>'+c+'</option>'}).join("");
+  })});
+  $("#fBH").addEventListener("submit",function(e){
+    e.preventDefault();var f=e.target;var t=new Date(f.t.value).getTime();var ml=num(f.ml.value);
+    if(isNaN(t)||ml==null||ml<=0){$("#bhMsg").textContent="Indica fecha, hora y un volumen mayor que 0.";$("#bhMsg").style.color="#b91c1c";return}
+    state.balance.push({id:uid(),t:t,tipo:tipoBH,concepto:f.concepto.value,ml:Math.round(ml),obs:f.obs.value.trim()});
+    diaSel=diaBalance(t);guardar();renderBalance();toast((tipoBH==="ingreso"?"Ingreso":"Egreso")+" añadido");
+  });
+  var sd=$("#selDia"); if(sd) sd.addEventListener("change",function(){diaSel=sd.value;renderBalance()});
+  $("#chkIns").addEventListener("change",function(e){state.ajustes.insensibles=e.target.checked;guardar();renderBalance()});
+  v.querySelectorAll("[data-delbh]").forEach(function(b){b.addEventListener("click",function(){
+    confirmar("¿Borrar este registro de líquidos?",function(){state.balance=state.balance.filter(function(x){return x.id!==b.dataset.delbh});guardar();renderBalance()})})});
+  var cb=$("#copyBH"); if(cb) cb.addEventListener("click",function(){copiar(csvBH(diaSel))});
+}
+function calcDia(dia,peso,pac){
+  pac=pac||state;
+  var regs=pac.balance.filter(function(b){return diaBalance(b.t)===dia});
+  var tab={ingreso:{},egreso:{}}, tot={ingreso:{M:0,T:0,N:0},egreso:{M:0,T:0,N:0}};
+  regs.forEach(function(b){var tu=turnoDe(b.t);var c=tab[b.tipo][b.concepto]=tab[b.tipo][b.concepto]||{M:0,T:0,N:0};c[tu]+=b.ml;tot[b.tipo][tu]+=b.ml});
+  var ins=null;
+  if(pac.ajustes.insensibles&&peso!=null){ins={};TURNOS.forEach(function(t){ins[t.id]=Math.round(peso*0.5*t.h);tot.egreso[t.id]+=ins[t.id]})}
+  var sum=function(o){return o.M+o.T+o.N};
+  return {regs:regs,tab:tab,tot:tot,ins:ins,ing:sum(tot.ingreso),egr:sum(tot.egreso)};
+}
+function signo(n){return (n>0?"+":"")+fmt(n)}
+function hojaBalance(dia,peso){
+  var c=calcDia(dia,peso), bal=c.ing-c.egr;
+  var h='<div class="kpis">'+
+    '<div class="kpi"><div class="k">Ingresos 24 h</div><div class="v">'+fmt(c.ing)+' ml</div></div>'+
+    '<div class="kpi"><div class="k">Egresos 24 h</div><div class="v">'+fmt(c.egr)+' ml</div></div>'+
+    '<div class="kpi"><div class="k">Balance 24 h</div><div class="v '+(bal>0?"pos":bal<0?"neg":"")+'">'+signo(bal)+' ml</div></div>'+
+  '</div>';
+  h+='<div class="tablewrap"><table><thead><tr><th>Concepto</th>'+TURNOS.map(function(t){return '<th class="num">'+t.n+'<br><span style="font-weight:400;text-transform:none">'+t.d+'</span></th>'}).join("")+'<th class="num">Total 24 h</th></tr></thead><tbody>';
+  ["ingreso","egreso"].forEach(function(tipo){
+    h+='<tr><td colspan="5" style="padding-top:12px;font-weight:700;color:'+(tipo==="ingreso"?"#0f766e":"#b45309")+'">'+(tipo==="ingreso"?"INGRESOS":"EGRESOS")+'</td></tr>';
+    var nombres=Object.keys(c.tab[tipo]);
+    nombres.sort(function(a,b){return CONCEPTOS[tipo].indexOf(a)-CONCEPTOS[tipo].indexOf(b)});
+    nombres.forEach(function(k){var o=c.tab[tipo][k];h+='<tr><td>'+esc(k)+'</td>'+TURNOS.map(function(t){return '<td class="num">'+(o[t.id]?fmt(o[t.id]):"—")+'</td>'}).join("")+'<td class="num">'+fmt(o.M+o.T+o.N)+'</td></tr>'});
+    if(tipo==="egreso"&&c.ins){h+='<tr><td>Pérdidas insensibles <span class="hint">(0,5 ml/kg/h)</span></td>'+TURNOS.map(function(t){return '<td class="num">'+fmt(c.ins[t.id])+'</td>'}).join("")+'<td class="num">'+fmt(c.ins.M+c.ins.T+c.ins.N)+'</td></tr>'}
+    if(!nombres.length&&!(tipo==="egreso"&&c.ins)) h+='<tr><td colspan="5" class="hint">Sin registros</td></tr>';
+    var o=c.tot[tipo];
+    h+='<tr class="sub"><td>Total '+(tipo==="ingreso"?"ingresos":"egresos")+'</td>'+TURNOS.map(function(t){return '<td class="num">'+fmt(o[t.id])+'</td>'}).join("")+'<td class="num">'+fmt(o.M+o.T+o.N)+'</td></tr>';
+  });
+  h+='<tr class="tot"><td>BALANCE</td>'+TURNOS.map(function(t){var b=c.tot.ingreso[t.id]-c.tot.egreso[t.id];return '<td class="num '+(b>0?"pos":b<0?"neg":"")+'">'+signo(b)+'</td>'}).join("")+'<td class="num '+(bal>0?"pos":bal<0?"neg":"")+'">'+signo(bal)+'</td></tr>';
+  h+='</tbody></table></div>';
+  h+='<p class="hint">Balance = ingresos − egresos. Positivo: el paciente retiene líquidos; negativo: pierde más de lo que recibe.'+(c.ins?' Las pérdidas insensibles son una estimación y aumentan con la fiebre, la taquipnea o la sudoración.':'')+'</p>';
+  return h;
+}
+function tablaBH(dia){
+  var regs=state.balance.filter(function(b){return diaBalance(b.t)===dia}).sort(function(a,b){return b.t-a.t});
+  var h='<div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Hora</th><th>Turno</th><th>Tipo</th><th>Concepto</th><th class="num">ml</th><th>Observaciones</th><th></th></tr></thead><tbody>';
+  regs.forEach(function(b){var tu=TURNOS.filter(function(t){return t.id===turnoDe(b.t)})[0];
+    h+='<tr><td>'+fFecha(b.t)+'</td><td>'+fHora(b.t)+'</td><td>'+tu.n+'</td><td style="color:'+(b.tipo==="ingreso"?"#0f766e":"#b45309")+';font-weight:600">'+(b.tipo==="ingreso"?"Ingreso":"Egreso")+'</td><td>'+esc(b.concepto)+'</td><td class="num">'+fmt(b.ml)+'</td><td>'+esc(b.obs||"")+'</td><td><button class="small danger" data-delbh="'+b.id+'">Borrar</button></td></tr>'});
+  return h+'</tbody></table></div>';
+}
+function csvBH(dia){
+  var l=["Fecha;Hora;Turno;Tipo;Concepto;ml;Observaciones"];
+  state.balance.filter(function(b){return diaBalance(b.t)===dia}).sort(function(a,b){return a.t-b.t}).forEach(function(b){
+    l.push([fFecha(b.t)+"/"+new Date(b.t).getFullYear(),fHora(b.t),turnoDe(b.t),b.tipo,b.concepto,b.ml,(b.obs||"").replace(/;/g,",")].join(";"))});
+  return l.join("\n");
+}
+function evolucion(dias,peso){
+  var datos=dias.map(function(d){var c=calcDia(d,peso);return {d:d,ing:c.ing,egr:c.egr,bal:c.ing-c.egr}});
+  var max=Math.max.apply(null,datos.map(function(o){return Math.max(o.ing,o.egr)}).concat([1]));
+  var h='<div class="tablewrap"><table><thead><tr><th>Día (8 → 8 h)</th><th class="num">Ingresos</th><th class="num">Egresos</th><th class="num">Balance</th><th class="num">Acumulado</th><th style="width:40%"></th></tr></thead><tbody>';
+  var acu=0;
+  datos.forEach(function(o){acu+=o.bal;
+    h+='<tr><td>'+fDia(o.d)+'</td><td class="num">'+fmt(o.ing)+'</td><td class="num">'+fmt(o.egr)+'</td><td class="num '+(o.bal>0?"pos":o.bal<0?"neg":"")+'">'+signo(o.bal)+'</td><td class="num '+(acu>0?"pos":acu<0?"neg":"")+'">'+signo(acu)+'</td>'+
+    '<td><div style="height:8px;background:#0f766e;border-radius:4px;width:'+(o.ing/max*100)+'%;margin-bottom:3px" title="Ingresos"></div><div style="height:8px;background:#b45309;border-radius:4px;width:'+(o.egr/max*100)+'%" title="Egresos"></div></td></tr>'});
+  return h+'</tbody></table></div><p class="hint"><span style="color:#0f766e;font-weight:700">■</span> Ingresos &nbsp; <span style="color:#b45309;font-weight:700">■</span> Egresos</p>';
+}
+
+function copiar(txt){
+  try{navigator.clipboard.writeText(txt).then(function(){toast("Copiado: pégalo en Excel u Hojas de cálculo")},function(){toast("No se pudo copiar")})}catch(e){toast("No se pudo copiar")}
+}
+
+/* ---------- Pestañas clínicas: tratamiento, cuidados, curas, pruebas, incidencias ---------- */
+var VIAS=[["OR","oral"],["SBL","sublingual"],["oft","oftálmica"],["ot","ótica"],["n","nasal"],["top","tópica"],["iv","intravenosa"],["sbc","subcutánea"],["im","intramuscular"],["id","intradérmica"],["rect","rectal"],["inh","inhalada"],["SNG","por sonda nasogástrica"]];
+var PAUTAS=["c/4h","c/6h","c/8h","c/12h","c/24h","1-0-0","1-1-0","1-0-1","1-1-1","0-0-1","Dosis única","Si precisa (SOS)","Perfusión continua"];
+var CUIDADOS_CAT=["Aseo en cama","Aseo en ducha","Aseo parcial","Higiene bucal","Uso de cuña","Uso de botella","Cambio de pañal","Deposición","Sonda vesical","Sonda nasogástrica","Cambio postural","Movilización / sedestación","Deambulación","Cambio de ropa de cama","Ayuda en la alimentación","Cuidados de la piel (prevención de UPP)","Cuidados de ostomía","Cuidados de la vía venosa","Cuidados del drenaje","Oxigenoterapia"];
+var CURAS_TIPOS=["Cura de herida quirúrgica","Cura de úlcera por presión","Cura de herida traumática","Cura de quemadura","Cura de vía venosa / catéter","Cura de drenaje","Cura de estoma","Cura de úlcera vascular / pie diabético","Otra cura"];
+var ZONAS=["Abdomen","Región sacra","Talón derecho","Talón izquierdo","Trocánter derecho","Trocánter izquierdo","Miembro inferior derecho","Miembro inferior izquierdo","Miembro superior derecho","Miembro superior izquierdo","Cabeza","Cuello","Tórax","Espalda","Región inguinal","Pie derecho","Pie izquierdo"];
+var EVOL=["Favorable (buen aspecto)","Sin cambios","Desfavorable (empeora)","Signos de infección","Cicatrizada / curada"];
+var PRUEBAS_CAT=["Analítica de sangre","Hemograma","Bioquímica","Coagulación","Gasometría arterial","Hemocultivo","Glucemia capilar","Urocultivo","Orina de 12 h","Orina de 24 h","Sedimento de orina","Orina elemental (tira reactiva)","Coprocultivo","Sangre oculta en heces","Recogida de esputo (cultivo)","Cultivo de herida / exudado","Frotis nasofaríngeo (PCR)","Biopsia","Citología","Electrocardiograma (ECG)","Radiografía","Ecografía","TAC","Resonancia magnética","Punción lumbar"];
+var ESTADOS_PR=["Solicitada","Muestra enviada","Realizada","Resultado recibido"];
+var fechaSel="", diaInc=null, editTT=null;
+
+function completar(p){
+  p.paciente=p.paciente||{};p.constantes=p.constantes||[];p.balance=p.balance||[];p.ajustes=p.ajustes||{insensibles:false};
+  p.valoracion=p.valoracion||{modelo:"gordon",gordon:{},henderson:{}};p.tto=p.tto||[];p.admin=p.admin||[];p.inc=p.inc||{};p.cuidadosLista=p.cuidadosLista||[];p.cuidados=p.cuidados||[];p.curas=p.curas||[];p.pruebas=p.pruebas||[];
+  return p;
+}
+function fechaElegida(){var t=new Date(fechaSel||ahoraLocal()).getTime();return isNaN(t)?Date.now():t}
+function barraFecha(txt){
+  return '<section class="card"><div class="toolbar" style="margin:0;align-items:flex-end"><label style="min-width:220px">Fecha y hora del registro<input type="datetime-local" id="fechaSel" value="'+esc(fechaSel||ahoraLocal())+'"></label><button class="small" id="btnAhora" type="button">Ahora</button></div><p class="hint">'+txt+' El día va de 8:00 a 8:00, como en el balance.</p></section>';
+}
+function ligarFecha(){
+  var f=$("#fechaSel"),b=$("#btnAhora");
+  if(f)f.addEventListener("change",function(){fechaSel=f.value;renderVista()});
+  if(b)b.addEventListener("click",function(){fechaSel="";renderVista()});
+}
+function opts(lista,sel){return lista.map(function(o){return '<option'+(o===sel?' selected':'')+'>'+esc(o)+'</option>'}).join("")}
+function porFechaDesc(a,b){return b.t-a.t}
+function filaHist(t){return '<td>'+fFecha(t)+'/'+new Date(t).getFullYear()+'</td><td>'+fHora(t)+'</td>'}
+
+/* ---- Datos del paciente (filiación + antecedentes) ---- */
+function campoT(k,l,ph){return '<label>'+l+'<textarea data-p="'+k+'" rows="3" placeholder="'+esc(ph||"")+'">'+esc(state.paciente[k]||"")+'</textarea></label>'}
+function textoAlerta(){var a=(state.paciente.alergias||"").trim();return a?'<div class="alerta">⚠ Alergias: '+esc(a)+'</div>':''}
+function renderDatos(){
+  var v=$("#vista");
+  v.innerHTML=
+  '<section class="card"><div class="toolbar"><h2 style="margin:0">Datos de filiación</h2><span class="sp"></span><button class="small danger" id="btnDel">Eliminar paciente</button></div><div class="grid pac">'+
+    campoP("nombre","Nombre y apellidos")+campoP("hab","Habitación / cama")+campoP("historia","N.º historia clínica")+
+    campoP("edad","Edad")+campoP("peso","Peso (kg)")+campoP("ingreso","Fecha de ingreso","date")+campoP("diagnostico","Diagnóstico / motivo de ingreso")+campoP("registra","Personal que registra")+
+  '</div></section>'+
+  '<section class="card"><h2>Antecedentes y tratamiento previo</h2><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">'+
+    campoT("alergias","Alergias","Medicamentos, alimentos, látex… (o «sin alergias conocidas»)")+
+    campoT("patologias","Patologías importantes","Diabetes, HTA, EPOC, cardiopatía…")+
+    campoT("cirugias","Cirugías previas","Intervención y año aproximado")+
+    campoT("tratamientoActual","Tratamiento actual (domiciliario)","Medicación habitual antes del ingreso")+
+  '</div><p class="hint">Las alergias se muestran en un aviso rojo en todas las pestañas del paciente.</p></section>';
+  v.querySelectorAll("[data-p]").forEach(function(inp){
+    var f=function(){state.paciente[inp.dataset.p]=inp.value;guardar();
+      if(inp.dataset.p==="nombre"||inp.dataset.p==="hab"){var c=document.querySelector('[data-pid="'+state.id+'"]');if(c)c.innerHTML=etiquetaPac(state)}
+      if(inp.dataset.p==="alergias"){var al=$("#alertaAlergias");if(al)al.innerHTML=textoAlerta()}};
+    inp.addEventListener("change",f);
+    if(inp.tagName==="TEXTAREA")inp.addEventListener("input",f);
+  });
+  $("#btnDel").addEventListener("click",function(){
+    confirmar("¿Eliminar a "+(state.paciente.nombre||"este paciente")+" con todos sus registros? No se puede deshacer.",function(){
+      db.pacientes=db.pacientes.filter(function(p){return p.id!==state.id});
+      if(!db.pacientes.length) db.pacientes.push(nuevoPaciente());
+      activar(db.pacientes[0].id);guardar();render();toast("Paciente eliminado");
+    });
+  });
+}
+
+/* ---- Incidencias ---- */
+function renderIncidencias(){
+  var v=$("#vista"), p=state;
+  if(!diaInc) diaInc=diaBalance(Date.now());
+  var reg=p.inc[diaInc]||{};
+  var h='<section class="card"><div class="toolbar" style="align-items:flex-end;margin-bottom:6px"><label style="min-width:180px">Día<input type="date" id="diaInc" value="'+esc(diaInc)+'"></label><button class="small" id="btnHoyInc" type="button">Hoy</button></div>'+
+    '<p class="hint" style="margin-top:0">Escribe lo ocurrido en cada turno. La noche pertenece al día en que empieza (el día va de 8:00 a 8:00).</p>';
+  TURNOS.forEach(function(t){
+    var r=reg[t.id]||{};
+    h+='<h3>'+t.n+' <span style="font-weight:400;text-transform:none">('+t.d+')</span></h3>'+
+      '<textarea data-tu="'+t.id+'" rows="5" placeholder="Incidencias del turno de '+t.n.toLowerCase()+'…">'+esc(r.txt||"")+'</textarea>'+
+      '<label style="margin-top:6px;max-width:320px">Registrado por<input data-por="'+t.id+'" type="text" value="'+esc(r.por||"")+'" placeholder="Nombre"></label>';
+  });
+  h+='</section>';
+  var dias=Object.keys(p.inc).filter(function(d){return TURNOS.some(function(t){return p.inc[d][t.id]&&p.inc[d][t.id].txt})}).sort().reverse();
+  h+='<section class="card"><h2>Historial de incidencias</h2>';
+  if(!dias.length)h+='<div class="empty">Aún no hay incidencias escritas.</div>';
+  else{
+    h+='<div class="tablewrap"><table><thead><tr><th>Día</th><th>Turno</th><th>Incidencias</th><th>Registrado por</th><th></th></tr></thead><tbody>';
+    dias.forEach(function(d){TURNOS.forEach(function(t){var r=p.inc[d][t.id];if(r&&r.txt)h+='<tr><td>'+fDia(d)+'</td><td>'+t.n+'</td><td style="white-space:pre-wrap;min-width:220px">'+esc(r.txt)+'</td><td>'+esc(r.por||"")+'</td><td><button class="small" data-dia="'+d+'">Abrir día</button></td></tr>'})});
+    h+='</tbody></table></div>';
+  }
+  v.innerHTML=h+'</section>';
+  $("#diaInc").addEventListener("change",function(e){if(e.target.value){diaInc=e.target.value;renderIncidencias()}});
+  $("#btnHoyInc").addEventListener("click",function(){diaInc=diaBalance(Date.now());renderIncidencias()});
+  function guardaInc(){
+    var o=p.inc[diaInc]=p.inc[diaInc]||{};
+    v.querySelectorAll("[data-tu]").forEach(function(ta){var id=ta.dataset.tu;o[id]=o[id]||{};o[id].txt=ta.value});
+    v.querySelectorAll("[data-por]").forEach(function(i){var id=i.dataset.por;o[id]=o[id]||{};o[id].por=i.value});
+    guardar();
+  }
+  v.querySelectorAll("[data-tu],[data-por]").forEach(function(el){el.addEventListener("input",guardaInc);el.addEventListener("change",function(){guardaInc();});});
+  v.querySelectorAll("[data-dia]").forEach(function(b){b.addEventListener("click",function(){diaInc=b.dataset.dia;renderIncidencias();window.scrollTo(0,0)})});
+}
+
+/* ---- Tratamiento ---- */
+var diaTto=null, diaCui=null;
+function hoyISO(){var d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function diaAdm(a){if(a.dia)return a.dia;var d=new Date(a.t);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function tAt(dia,h,min){var q=dia.split("-");return new Date(+q[0],+q[1]-1,+q[2],h,min||0,0).getTime()}
+function franjas(pauta){
+  var m=/c\s*\/\s*(\d+)\s*h/i.exec(pauta||"");if(!m)return null;var n=+m[1];
+  if(n===8)return [8,16,24]; if(n===6)return [6,12,18,24]; if(n===12)return [12,24];
+  return null;
+}
+function barraDia(id,idHoy,txt){
+  return '<section class="card"><div class="toolbar" style="align-items:flex-end;margin-bottom:6px"><label style="min-width:180px">Día<input type="date" id="'+id+'" value="'+esc(id==="diaTto"?diaTto:diaCui)+'"></label><button class="small" id="'+idHoy+'" type="button">Hoy</button></div><p class="hint" style="margin:0">'+txt+'</p></section>';
+}
+function renderTratamiento(){
+  var v=$("#vista"), p=state;
+  if(!diaTto)diaTto=hoyISO();
+  var activos=p.tto.filter(function(m){return !m.baja});
+  var retirados=p.tto.filter(function(m){return m.baja}).sort(function(a,b){return b.baja-a.baja});
+  var ed=editTT?p.tto.filter(function(m){return m.id===editTT&&!m.baja})[0]:null;
+  if(!ed)editTT=null;
+  var h=barraDia("diaTto","btnHoyTto","Las tomas se marcan en este día. Al eliminar un medicamento queda registrada la fecha y la hora de ese momento.");
+  h+='<section class="card"><h2>'+(ed?'Editar medicamento':'Añadir medicamento')+'</h2>'+
+    '<form id="fTT" class="grid form-gen" autocomplete="off">'+
+    '<label>Medicamento<input name="med" required value="'+esc(ed?ed.med:"")+'" placeholder="p. ej. Paracetamol"></label>'+
+    '<label>Dosis<input name="dosis" value="'+esc(ed?ed.dosis:"")+'" placeholder="p. ej. 1 g · 500 mg · 2 gotas"></label>'+
+    '<label>Vía<select name="via">'+VIAS.map(function(x){return '<option value="'+x[0]+'"'+(ed&&ed.via===x[0]?' selected':'')+'>'+x[0]+' · '+x[1]+'</option>'}).join("")+'</select></label>'+
+    '<label>Pauta<input name="pauta" list="dlPautas" value="'+esc(ed?ed.pauta:"")+'" placeholder="p. ej. c/8h"></label><datalist id="dlPautas">'+PAUTAS.map(function(x){return '<option value="'+esc(x)+'">'}).join("")+'</datalist>'+
+    '<div class="toolbar" style="margin:0"><button class="primary" type="submit">'+(ed?'Guardar cambios':'Añadir')+'</button>'+(ed?'<button type="button" id="btnCancelTT">Cancelar</button>':'')+'</div></form>'+
+    '<p class="hint">Vías: '+VIAS.map(function(x){return '<b>'+x[0]+'</b> '+x[1]}).join(" · ")+'.<br>Pauta «c/8h» → se marca en 8-16-24 h; «c/6h» → 6-12-18-24 h; «c/12h» → 12-24 h; «c/4h», «c/24h» y el resto → se escribe la hora.</p></section>';
+  h+='<section class="card"><h2>Tratamiento activo <span class="hint" style="font-weight:400">('+fDia(diaTto)+')</span></h2>';
+  if(!activos.length)h+='<div class="empty">Sin medicamentos en el tratamiento.</div>';
+  else{
+    activos.forEach(function(m){
+      var del=p.admin.filter(function(a){return a.tto===m.id&&diaAdm(a)===diaTto});
+      var fr=franjas(m.pauta), via=VIAS.filter(function(x){return x[0]===m.via})[0];
+      h+='<div class="med"><div class="medtop"><div><b>'+esc(m.med)+'</b> '+esc(m.dosis||"")+' · <b title="'+esc(via?via[1]:"")+'">'+esc(m.via)+'</b> · '+esc(m.pauta||"sin pauta")+'</div>'+
+        '<div><button class="small" data-edit="'+m.id+'">Editar</button> <button class="small danger" data-elim="'+m.id+'">Eliminar</button></div></div><div class="tomas">';
+      if(fr){
+        fr.forEach(function(hh){var dado=del.some(function(a){return a.slot===hh});
+          h+='<button class="slot'+(dado?' on':'')+'" data-slot="'+hh+'" data-m="'+m.id+'" title="'+(dado?'Dada: pulsa para quitar':'Marcar como administrada')+'">'+(dado?'x ':'')+hh+' h</button>'});
+      }else{
+        h+='<input type="time" data-hora="'+m.id+'" aria-label="Hora de administración"><button class="xbtn" data-dar="'+m.id+'" title="Marcar como administrado">x</button><span class="hint" style="margin:0">Escribe la hora (vacío = ahora) y pulsa x</span>';
+      }
+      h+='</div>';
+      var extra=del.filter(function(a){return !a.slot}).sort(function(a,b){return a.t-b.t});
+      if(extra.length)h+='<div class="tomas">'+extra.map(function(a){return '<button class="small hora" data-quitar="'+a.id+'" title="Pulsa para quitar esta toma">'+fHora(a.t)+'</button>'}).join(" ")+'</div>';
+      h+='</div>';
+    });
+    h+='<p class="hint">Pulsa la hora (o la <b>x</b>) cuando se administre: queda marcado en el día elegido arriba. Una hora marcada se quita pulsándola otra vez.</p>';
+  }
+  h+='</section>';
+  if(retirados.length){
+    h+='<section class="card"><h2>Medicamentos eliminados del tratamiento</h2><div class="tablewrap"><table><thead><tr><th>Medicamento</th><th>Dosis</th><th>Vía</th><th>Pauta</th><th>Desde</th><th>Eliminado el</th><th class="num">Tomas</th><th></th></tr></thead><tbody>';
+    retirados.forEach(function(m){
+      h+='<tr><td>'+esc(m.med)+'</td><td>'+esc(m.dosis||"")+'</td><td>'+esc(m.via)+'</td><td>'+esc(m.pauta||"")+'</td><td>'+(m.alta?fFull(m.alta):"")+'</td><td><b>'+fFull(m.baja)+'</b></td><td class="num">'+p.admin.filter(function(a){return a.tto===m.id}).length+'</td><td><button class="small" data-react="'+m.id+'">Reactivar</button></td></tr>';
+    });
+    h+='</tbody></table></div></section>';
+  }
+  var adm=p.admin.slice().sort(porFechaDesc).slice(0,300);
+  h+='<section class="card"><h2>Registro de administraciones</h2>';
+  if(!adm.length)h+='<div class="empty">Aún no se ha marcado ninguna dosis.</div>';
+  else{
+    h+='<div class="tablewrap"><table><thead><tr><th>Día</th><th>Hora</th><th>Medicamento</th><th>Dosis</th><th>Vía</th><th></th></tr></thead><tbody>';
+    adm.forEach(function(a){var m=p.tto.filter(function(x){return x.id===a.tto})[0];if(!m)return;
+      h+='<tr><td>'+fDia(diaAdm(a))+'</td><td>'+(a.slot?a.slot+' h':fHora(a.t))+'</td><td>'+esc(m.med)+(m.baja?' <span class="hint">(eliminado)</span>':'')+'</td><td>'+esc(m.dosis||"")+'</td><td>'+esc(m.via)+'</td><td><button class="small danger" data-delad="'+a.id+'">Borrar</button></td></tr>'});
+    h+='</tbody></table></div>';
+  }
+  v.innerHTML=h+'</section>';
+  $("#diaTto").addEventListener("change",function(e){if(e.target.value){diaTto=e.target.value;renderTratamiento()}});
+  $("#btnHoyTto").addEventListener("click",function(){diaTto=hoyISO();renderTratamiento()});
+  $("#fTT").addEventListener("submit",function(e){
+    e.preventDefault();var f=e.target,med=f.med.value.trim();if(!med)return;
+    if(ed){ed.med=med;ed.dosis=f.dosis.value.trim();ed.via=f.via.value;ed.pauta=f.pauta.value.trim();editTT=null;toast("Medicamento actualizado")}
+    else{p.tto.push({id:uid(),med:med,dosis:f.dosis.value.trim(),via:f.via.value,pauta:f.pauta.value.trim(),alta:Date.now(),baja:null});toast("Medicamento añadido")}
+    guardar();renderTratamiento();
+  });
+  var bc=$("#btnCancelTT");if(bc)bc.addEventListener("click",function(){editTT=null;renderTratamiento()});
+  v.querySelectorAll("[data-slot]").forEach(function(b){b.addEventListener("click",function(){
+    var id=b.dataset.m,hh=+b.dataset.slot;
+    var ya=p.admin.filter(function(a){return a.tto===id&&diaAdm(a)===diaTto&&a.slot===hh});
+    if(ya.length)p.admin=p.admin.filter(function(a){return ya.indexOf(a)<0});
+    else p.admin.push({id:uid(),tto:id,t:tAt(diaTto,hh,0),dia:diaTto,slot:hh});
+    guardar();renderTratamiento()})});
+  v.querySelectorAll("[data-dar]").forEach(function(b){b.addEventListener("click",function(){
+    var inp=v.querySelector('[data-hora="'+b.dataset.dar+'"]'),hm=inp.value;
+    var hh,mm;if(hm){hh=+hm.split(":")[0];mm=+hm.split(":")[1]}else{var n=new Date();hh=n.getHours();mm=n.getMinutes()}
+    p.admin.push({id:uid(),tto:b.dataset.dar,t:tAt(diaTto,hh,mm),dia:diaTto});guardar();renderTratamiento();toast("Dosis registrada a las "+pad(hh)+":"+pad(mm))})});
+  v.querySelectorAll("[data-quitar]").forEach(function(b){b.addEventListener("click",function(){
+    confirmar("¿Quitar la toma de las "+b.textContent+"?",function(){p.admin=p.admin.filter(function(a){return a.id!==b.dataset.quitar});guardar();renderTratamiento()})})});
+  v.querySelectorAll("[data-delad]").forEach(function(b){b.addEventListener("click",function(){
+    p.admin=p.admin.filter(function(a){return a.id!==b.dataset.delad});guardar();renderTratamiento()})});
+  v.querySelectorAll("[data-edit]").forEach(function(b){b.addEventListener("click",function(){editTT=b.dataset.edit;renderTratamiento();window.scrollTo(0,0)})});
+  v.querySelectorAll("[data-elim]").forEach(function(b){b.addEventListener("click",function(){
+    var m=p.tto.filter(function(x){return x.id===b.dataset.elim})[0];
+    confirmar("¿Eliminar «"+m.med+"» del tratamiento? Quedará registrado el día y la hora actuales: "+fFull(Date.now())+".",function(){m.baja=Date.now();if(editTT===m.id)editTT=null;guardar();renderTratamiento();toast("Medicamento eliminado del tratamiento")})})});
+  v.querySelectorAll("[data-react]").forEach(function(b){b.addEventListener("click",function(){
+    var m=p.tto.filter(function(x){return x.id===b.dataset.react})[0];m.baja=null;guardar();renderTratamiento()})});
+}
+
+/* ---- Cuidados de enfermería ---- */
+var HORA_TURNO={M:10,T:17,N:23};
+function diaCu(r){return r.dia||diaBalance(r.t)}
+function turnoCu(r){return r.turno||turnoDe(r.t)}
+function renderCuidados(){
+  var v=$("#vista"), p=state;
+  if(!diaCui)diaCui=diaBalance(Date.now());
+  var libres=CUIDADOS_CAT.filter(function(c){return !p.cuidadosLista.some(function(x){return x.nombre===c})});
+  var h=barraDia("diaCui","btnHoyCui","Pulsa Mañana, Tarde o Noche cada vez que se realice el cuidado en ese turno. Mañana 8–15 h · Tarde 15–22 h · Noche 22–8 h.");
+  h+='<section class="card"><h2>Añadir un cuidado a este paciente</h2><form id="fCU" class="grid form-gen" autocomplete="off">'+
+    '<label>Elegir de la lista<select name="cat"><option value="">— Elegir —</option>'+opts(libres,"")+'</select></label>'+
+    '<label>…o escribir otro<input name="otro" type="text" placeholder="p. ej. Cuidados de traqueostomía"></label>'+
+    '<div class="toolbar" style="margin:0"><button class="primary" type="submit">Añadir</button></div></form>'+
+    '<p class="hint">Añade solo los cuidados que necesita este paciente (por ejemplo, pañal o sonda solo si los lleva).</p></section>';
+  h+='<section class="card"><h2>Cuidados del paciente <span class="hint" style="font-weight:400">('+fDia(diaCui)+')</span></h2>';
+  if(!p.cuidadosLista.length)h+='<div class="empty">Aún no hay cuidados añadidos.</div>';
+  else{
+    p.cuidadosLista.forEach(function(c){
+      h+='<div class="med"><div class="medtop"><b>'+esc(c.nombre)+'</b><button class="small danger" data-quitarcu="'+c.id+'">Quitar</button></div>'+
+        '<div class="tomas">'+TURNOS.map(function(t){
+          var n=p.cuidados.filter(function(r){return r.item===c.nombre&&diaCu(r)===diaCui&&turnoCu(r)===t.id}).length;
+          return '<button class="slot'+(n?' on':'')+'" data-cu="'+c.id+'" data-turno="'+t.id+'">'+(n?'x ':'')+t.n+(n>1?' ('+n+')':'')+'</button>'}).join("")+'</div>'+
+        '<input data-obs="'+c.id+'" type="text" placeholder="Detalle opcional para el siguiente registro (p. ej. abundante, Bristol 4)" style="width:100%;margin-top:8px"></div>';
+    });
+    h+='<p class="hint">Cada pulsación suma un registro en ese turno (se indica el número si hay más de uno). Para quitar uno, bórralo en el registro de abajo. «Quitar» deja de mostrar el cuidado pero conserva lo ya registrado.</p>';
+  }
+  h+='</section>';
+  var orden={M:0,T:1,N:2};
+  var reg=p.cuidados.slice().sort(function(a,b){return diaCu(a)===diaCu(b)?orden[turnoCu(b)]-orden[turnoCu(a)]||b.t-a.t:(diaCu(a)<diaCu(b)?1:-1)}).slice(0,300);
+  h+='<section class="card"><h2>Registro de cuidados</h2>';
+  if(!reg.length)h+='<div class="empty">Aún no hay cuidados registrados.</div>';
+  else{
+    h+='<div class="tablewrap"><table><thead><tr><th>Día</th><th>Turno</th><th>Cuidado</th><th>Detalle</th><th></th></tr></thead><tbody>';
+    reg.forEach(function(r){var tu=TURNOS.filter(function(t){return t.id===turnoCu(r)})[0];
+      h+='<tr><td>'+fDia(diaCu(r))+'</td><td>'+tu.n+'</td><td>'+esc(r.item)+'</td><td>'+esc(r.obs||"")+'</td><td><button class="small danger" data-delcu="'+r.id+'">Borrar</button></td></tr>'});
+    h+='</tbody></table></div>';
+  }
+  v.innerHTML=h+'</section>';
+  $("#diaCui").addEventListener("change",function(e){if(e.target.value){diaCui=e.target.value;renderCuidados()}});
+  $("#btnHoyCui").addEventListener("click",function(){diaCui=diaBalance(Date.now());renderCuidados()});
+  $("#fCU").addEventListener("submit",function(e){
+    e.preventDefault();var f=e.target,n=(f.otro.value.trim()||f.cat.value);if(!n)return;
+    if(p.cuidadosLista.some(function(x){return x.nombre.toLowerCase()===n.toLowerCase()})){toast("Ese cuidado ya está añadido");return}
+    p.cuidadosLista.push({id:uid(),nombre:n});guardar();renderCuidados();
+  });
+  v.querySelectorAll("[data-cu]").forEach(function(b){b.addEventListener("click",function(){
+    var c=p.cuidadosLista.filter(function(x){return x.id===b.dataset.cu})[0];var inp=v.querySelector('[data-obs="'+c.id+'"]');
+    var tu=b.dataset.turno;
+    p.cuidados.push({id:uid(),t:tAt(diaCui,HORA_TURNO[tu],0),item:c.nombre,obs:inp.value.trim(),turno:tu,dia:diaCui});guardar();renderCuidados();toast("Registrado: "+c.nombre)})});
+  v.querySelectorAll("[data-quitarcu]").forEach(function(b){b.addEventListener("click",function(){
+    p.cuidadosLista=p.cuidadosLista.filter(function(x){return x.id!==b.dataset.quitarcu});guardar();renderCuidados()})});
+  v.querySelectorAll("[data-delcu]").forEach(function(b){b.addEventListener("click",function(){
+    p.cuidados=p.cuidados.filter(function(r){return r.id!==b.dataset.delcu});guardar();renderCuidados()})});
+}
+
+/* ---- Valoración al ingreso (Gordon / Henderson) ---- */
+var GORDON=[
+ ["Percepción–manejo de la salud","Cómo percibe su salud; hábitos tóxicos (tabaco, alcohol); adherencia al tratamiento; alergias."],
+ ["Nutricional–metabólico","Alimentación, ingesta de líquidos, peso y talla, piel y mucosas, apetito, dentición."],
+ ["Eliminación","Patrón intestinal y urinario, sudoración; incontinencia, estreñimiento."],
+ ["Actividad–ejercicio","Movilidad, ejercicio, autocuidado, respiración y circulación."],
+ ["Sueño–descanso","Horas y calidad del sueño; ayudas para dormir."],
+ ["Cognitivo–perceptivo","Orientación, memoria, vista, oído, dolor, lenguaje."],
+ ["Autopercepción–autoconcepto","Cómo se ve a sí mismo, estado de ánimo, ansiedad, imagen corporal."],
+ ["Rol–relaciones","Familia, apoyo social, situación laboral, cuidador principal."],
+ ["Sexualidad–reproducción","Sexualidad, menstruación, anticoncepción, cambios por la enfermedad."],
+ ["Adaptación–tolerancia al estrés","Cómo afronta los problemas, cambios recientes, recursos de apoyo."],
+ ["Valores–creencias","Valores, creencias religiosas o espirituales, decisiones sobre su salud."]
+];
+var HENDERSON=[
+ ["Respirar normalmente","Respiración, tos, secreciones, disnea, tabaco."],
+ ["Comer y beber adecuadamente","Dieta, apetito, deglución, dentadura, hidratación."],
+ ["Eliminar por todas las vías corporales","Orina, heces, sudor, menstruación."],
+ ["Moverse y mantener posturas adecuadas","Movilidad, postura, marcha, ayudas técnicas."],
+ ["Dormir y descansar","Horas de sueño, descanso, insomnio."],
+ ["Escoger ropa adecuada: vestirse y desvestirse","Capacidad para elegir y ponerse la ropa y el calzado."],
+ ["Mantener la temperatura corporal dentro de los límites normales","Temperatura, fiebre o hipotermia, adaptación al ambiente."],
+ ["Mantener la higiene corporal y la integridad de la piel","Higiene, estado de la piel y mucosas, úlceras."],
+ ["Evitar los peligros ambientales y evitar lesionar a otras personas","Riesgo de caídas, seguridad, alergias, medidas de protección."],
+ ["Comunicarse con los demás expresando emociones, necesidades, temores u opiniones","Comunicación, emociones, miedos, idioma, sentidos."],
+ ["Vivir de acuerdo con sus propios valores y creencias","Creencias, valores, prácticas religiosas."],
+ ["Ocuparse en algo de tal forma que su labor tenga un sentido de realización personal","Trabajo, ocupación, sensación de utilidad."],
+ ["Participar en actividades recreativas","Ocio, aficiones, actividades recreativas."],
+ ["Aprender, descubrir o satisfacer la curiosidad que conduce a un desarrollo normal y a usar los recursos disponibles","Conocimiento de su enfermedad, educación sanitaria, interés por aprender."]
+];
+var MODELOS={
+ gordon:{n:"Patrones de Gordon (11)",lista:GORDON,tit:"Patrón",estados:[["F","Funcional","ok"],["A","Alterado","bad"]]},
+ henderson:{n:"Necesidades de Henderson (14)",lista:HENDERSON,tit:"Necesidad",estados:[["I","Independiente","ok"],["P","Ayuda parcial","mid"],["D","Dependiente","bad"]]}
+};
+function renderValoracion(){
+  var v=$("#vista"), p=state;
+  p.valoracion=p.valoracion||{modelo:"gordon",gordon:{},henderson:{}};
+  var va=p.valoracion; va.gordon=va.gordon||{}; va.henderson=va.henderson||{};
+  var mod=MODELOS[va.modelo]?va.modelo:"gordon", M=MODELOS[mod], datos=va[mod];
+  var hechos=0,alt=0;
+  M.lista.forEach(function(it,i){var d=datos[i]||{};if(d.estado)hechos++;if(d.estado==="A"||d.estado==="D"||d.estado==="P")alt++});
+  var h='<section class="card"><div class="toolbar" style="margin-bottom:8px"><h2 style="margin:0">Valoración al ingreso</h2></div>'+
+    '<div class="estados" role="group" aria-label="Modelo de valoración">'+Object.keys(MODELOS).map(function(k){return '<button type="button" class="chip'+(k===mod?' on':'')+'" data-modelo="'+k+'">'+MODELOS[k].n+'</button>'}).join("")+'</div>'+
+    '<p class="hint">Lo que escribes en un modelo se conserva al cambiar al otro. Valorados: <b>'+hechos+' de '+M.lista.length+'</b>'+(alt?' · con alteración o ayuda: <b>'+alt+'</b>':'')+'.</p></section>';
+  M.lista.forEach(function(it,i){
+    var d=datos[i]||{};
+    h+='<div class="med"><div style="font-weight:650">'+M.tit+' '+(i+1)+'. '+esc(it[0])+'</div><div class="hint" style="margin:2px 0 8px">'+esc(it[1])+'</div>'+
+      '<div class="estados">'+M.estados.map(function(e){return '<button type="button" class="est '+e[2]+(d.estado===e[0]?' on':'')+'" data-i="'+i+'" data-e="'+e[0]+'">'+e[1]+'</button>'}).join("")+'</div>'+
+      '<textarea data-obs="'+i+'" rows="2" placeholder="Observaciones" style="margin-top:8px;min-height:60px">'+esc(d.obs||"")+'</textarea></div>';
+  });
+  v.innerHTML=h;
+  v.querySelectorAll("[data-modelo]").forEach(function(b){b.addEventListener("click",function(){va.modelo=b.dataset.modelo;guardar();renderValoracion();window.scrollTo(0,0)})});
+  v.querySelectorAll("[data-e]").forEach(function(b){b.addEventListener("click",function(){
+    var i=b.dataset.i,d=datos[i]=datos[i]||{};d.estado=(d.estado===b.dataset.e)?"":b.dataset.e;guardar();
+    var y=window.scrollY;renderValoracion();window.scrollTo(0,y)})});
+  v.querySelectorAll("textarea[data-obs]").forEach(function(t){t.addEventListener("input",function(){
+    var i=t.dataset.obs,d=datos[i]=datos[i]||{};d.obs=t.value;guardar()})});
+}
+
+/* ---- Curas ---- */
+function renderCuras(){
+  var v=$("#vista"), p=state;
+  var h='<section class="card"><h2>Nueva cura</h2><form id="fCUR" class="grid form-gen" autocomplete="off">'+
+    '<label>Fecha y hora<input type="datetime-local" name="t" required value="'+ahoraLocal()+'"></label>'+
+    '<label>Tipo de cura<select name="tipo">'+opts(CURAS_TIPOS,"")+'</select></label>'+
+    '<label>Zona del cuerpo<input name="zona" list="dlZonas" required placeholder="p. ej. Región sacra"></label><datalist id="dlZonas">'+ZONAS.map(function(z){return '<option value="'+esc(z)+'">'}).join("")+'</datalist>'+
+    '<label>Material utilizado<input name="material" placeholder="p. ej. suero fisiológico, gasas, apósito de espuma"></label>'+
+    '<label>Evolución<select name="evol">'+opts(EVOL,"")+'</select></label>'+
+    '<label>Observaciones<input name="obs" placeholder="Opcional (exudado, olor, tamaño…)"></label>'+
+    '<div class="toolbar" style="margin:0"><button class="primary" type="submit">Añadir</button></div></form></section>';
+  var reg=p.curas.slice().sort(porFechaDesc);
+  h+='<section class="card"><h2>Registro de curas</h2>';
+  if(!reg.length)h+='<div class="empty">Aún no hay curas registradas.</div>';
+  else{
+    h+='<div class="tablewrap"><table><thead><tr><th>Fecha</th><th>Hora</th><th>Tipo</th><th>Zona</th><th>Material</th><th>Evolución</th><th>Observaciones</th><th></th></tr></thead><tbody>';
+    reg.forEach(function(r){h+='<tr>'+filaHist(r.t)+'<td>'+esc(r.tipo)+'</td><td>'+esc(r.zona)+'</td><td style="white-space:normal;min-width:160px">'+esc(r.material||"")+'</td><td>'+esc(r.evol||"")+'</td><td style="white-space:normal;min-width:140px">'+esc(r.obs||"")+'</td><td><button class="small danger" data-delcur="'+r.id+'">Borrar</button></td></tr>'});
+    h+='</tbody></table></div>';
+  }
+  v.innerHTML=h+'</section>';
+  $("#fCUR").addEventListener("submit",function(e){
+    e.preventDefault();var f=e.target,t=new Date(f.t.value).getTime();if(isNaN(t))return;
+    p.curas.push({id:uid(),t:t,tipo:f.tipo.value,zona:f.zona.value.trim(),material:f.material.value.trim(),evol:f.evol.value,obs:f.obs.value.trim()});
+    guardar();renderCuras();toast("Cura registrada");
+  });
+  v.querySelectorAll("[data-delcur]").forEach(function(b){b.addEventListener("click",function(){
+    p.curas=p.curas.filter(function(r){return r.id!==b.dataset.delcur});guardar();renderCuras()})});
+}
+
+/* ---- Pruebas diagnósticas ---- */
+function renderPruebas(){
+  var v=$("#vista"), p=state;
+  var h='<section class="card"><h2>Nueva prueba diagnóstica</h2><form id="fPR" class="grid form-gen" autocomplete="off">'+
+    '<label>Fecha y hora<input type="datetime-local" name="t" required value="'+ahoraLocal()+'"></label>'+
+    '<label>Prueba<select name="cat"><option value="">— Elegir —</option>'+opts(PRUEBAS_CAT,"")+'</select></label>'+
+    '<label>…o escribir otra<input name="otra" placeholder="p. ej. Test de embarazo"></label>'+
+    '<label>Estado<select name="estado">'+opts(ESTADOS_PR,"Realizada")+'</select></label>'+
+    '<label>Observaciones / resultado<input name="obs" placeholder="Opcional"></label>'+
+    '<div class="toolbar" style="margin:0"><button class="primary" type="submit">Añadir</button></div></form></section>';
+  var reg=p.pruebas.slice().sort(porFechaDesc);
+  h+='<section class="card"><h2>Pruebas del paciente</h2>';
+  if(!reg.length)h+='<div class="empty">Aún no hay pruebas registradas.</div>';
+  else{
+    h+='<div class="tablewrap"><table><thead><tr><th>Prueba</th><th>Estado</th><th>Fecha</th><th>Hora</th><th>Observaciones / resultado</th><th></th></tr></thead><tbody>';
+    reg.forEach(function(r){h+='<tr><td><b>'+esc(r.tipo)+'</b></td><td><select data-est="'+r.id+'">'+opts(ESTADOS_PR,r.estado)+'</select></td>'+filaHist(r.t)+'<td><input data-pobs="'+r.id+'" type="text" value="'+esc(r.obs||"")+'" style="width:100%;min-width:200px"></td><td><button class="small danger" data-delpr="'+r.id+'">Borrar</button></td></tr>'});
+    h+='</tbody></table></div><p class="hint">Puedes cambiar el estado o escribir el resultado directamente en la tabla.</p>';
+  }
+  v.innerHTML=h+'</section>';
+  $("#fPR").addEventListener("submit",function(e){
+    e.preventDefault();var f=e.target,t=new Date(f.t.value).getTime(),n=(f.otra.value.trim()||f.cat.value);if(isNaN(t)||!n)return;
+    p.pruebas.push({id:uid(),t:t,tipo:n,estado:f.estado.value,obs:f.obs.value.trim()});guardar();renderPruebas();toast("Prueba registrada");
+  });
+  function pr(id){return p.pruebas.filter(function(r){return r.id===id})[0]}
+  v.querySelectorAll("[data-est]").forEach(function(s){s.addEventListener("change",function(){pr(s.dataset.est).estado=s.value;guardar()})});
+  v.querySelectorAll("[data-pobs]").forEach(function(i){i.addEventListener("change",function(){pr(i.dataset.pobs).obs=i.value.trim();guardar()})});
+  v.querySelectorAll("[data-delpr]").forEach(function(b){b.addEventListener("click",function(){
+    p.pruebas=p.pruebas.filter(function(r){return r.id!==b.dataset.delpr});guardar();renderPruebas()})});
+}
+
+/* ---------- Arranque ---------- */
+activar(db.activo);
+render();
+try{var sy=sessionStorage.getItem("grafica-enf-scroll");if(sy){sessionStorage.removeItem("grafica-enf-scroll");setTimeout(function(){window.scrollTo(0,+sy)},50)}}catch(e){}
+window.addEventListener("hashchange",function(){var nv=vistaDeHash();if(nv!==vista){vista=nv;render()}});
+if(window.claude&&typeof window.claude.use==="function"){
+  window.claude.use("artifact").then(function(a){
+    if(a&&typeof a.publish==="function"){artifactApi=a;canPublish=true;setStatus("Guardado","ok");
+      if((db.savedAt||0)>(SEED.savedAt||0)) guardar();}
+  }).catch(function(){});
+}
+})();
+</script>
+</body>
+</html>

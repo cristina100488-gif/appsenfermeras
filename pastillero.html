@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pastillero semanal interactivo</title>
+<style>
+:root{
+  --bg:#eef3f8;--card:#fff;--ink:#1c2733;--mute:#5b6b7c;--line:#d7e0ea;--brand:#0f7c8a;--brand-d:#0b5f6a;--brand-l:#d9f0f2;
+  --cell:#f3f7fb;--ok:#1f9d63;--okbg:#e2f6ec;--bad:#d6334a;--badbg:#fde8eb;--warn:#b7791f;--warnbg:#fff4de;--lid:#0f7c8a;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#10171e;--card:#18222c;--ink:#e6edf4;--mute:#97a8b9;--line:#2b3a49;--brand:#3cc0cf;--brand-d:#7fdbe6;--brand-l:#173a40;
+  --cell:#202d3a;--okbg:#14382a;--badbg:#42202a;--warnbg:#3d3118;--lid:#1b6b76}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:18px 16px 6px;max-width:1440px;margin:0 auto}
+h1{margin:0;font-size:1.5rem}
+header p{margin:4px 0 0;color:var(--mute)}
+main{max-width:1440px;margin:0 auto;padding:10px 16px 40px;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:980px){main{grid-template-columns:340px minmax(0,1fr)}.col-r{grid-column:2;grid-row:1 / span 3}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.card h2{margin:0 0 10px;font-size:1.05rem;display:flex;align-items:center;gap:8px}
+label{display:block;font-size:.8rem;color:var(--mute);margin:8px 0 3px;font-weight:600}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+input:focus,select:focus,textarea:focus,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+.row .w2{flex:2}
+button{font:inherit;cursor:pointer;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px}
+button.pri{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+button.pri:hover{background:var(--brand-d)}
+button.sec:hover{background:var(--cell)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer;font-size:.88rem;background:var(--card);margin:0;color:var(--ink);font-weight:500}
+.chk input{width:auto;margin:0}
+.chk:has(input:checked){background:var(--brand-l);border-color:var(--brand)}
+.dt{width:34px;height:34px;padding:0;border-radius:50%;font-weight:700}
+.dt[aria-pressed=true]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.sw{width:26px;height:26px;padding:0;border-radius:50%;border:2px solid transparent}
+.sw[aria-pressed=true]{border-color:var(--ink);box-shadow:0 0 0 2px var(--card) inset}
+.err{color:var(--bad);font-size:.85rem;min-height:1.2em;margin-top:6px}
+.unit{display:flex;align-items:center;color:var(--mute);font-size:.85rem;white-space:nowrap}
+/* botiquín */
+#botiquin{border:2px dashed transparent;border-radius:12px;transition:.15s}
+#botiquin.drop{border-color:var(--bad);background:var(--badbg)}
+.med{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px;background:var(--card);cursor:grab;user-select:none;-webkit-user-select:none}
+.med.sel{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand);background:var(--brand-l)}
+.med .grab{touch-action:none;flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:9px;background:var(--cell)}
+.med .mi{flex:1;min-width:0;font-size:.9rem}
+.med small{color:var(--mute)}
+.med .obs{color:var(--warn)}
+.dose{color:var(--brand-d);font-weight:600}
+.tag{display:inline-block;font-size:.7rem;border-radius:999px;padding:1px 8px;margin-left:4px;vertical-align:middle;background:var(--warnbg);color:var(--warn);border:1px solid var(--warn)}
+.acts{display:flex;flex-direction:column;gap:4px}
+.mini{padding:2px 7px;font-size:.85rem;line-height:1.3}
+.empty{color:var(--mute);margin:4px 0}
+.hint{font-size:.85rem;color:var(--mute);margin:0 0 8px}
+.hint b{color:var(--brand-d)}
+/* pastillero */
+.boxwrap{overflow-x:auto;padding-bottom:4px}
+.box{min-width:980px;background:linear-gradient(#e7eef6,#dbe5ef);border:1px solid var(--line);border-radius:18px;padding:10px}
+@media(prefers-color-scheme:dark){.box{background:linear-gradient(#1d2a36,#17222c)}}
+.box.aparte{background:linear-gradient(#f7efe2,#f0e5d1)}
+@media(prefers-color-scheme:dark){.box.aparte{background:linear-gradient(#2d2619,#251f14)}}
+#grid,#grid2{display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));gap:6px}
+.dh{background:var(--lid);color:#fff;text-align:center;font-weight:700;border-radius:10px 10px 4px 4px;padding:6px 2px;font-size:.88rem}
+.dh .short{display:none}
+.sh{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.78rem;font-weight:600;color:var(--mute);text-align:center;line-height:1.15}
+.sh span:first-child{font-size:1.35rem}
+.cell{min-height:78px;background:var(--cell);border-radius:10px;padding:4px;box-shadow:inset 0 2px 5px rgba(0,0,0,.14);display:flex;flex-direction:column;gap:3px;border:2px solid transparent}
+.cell.over{border-color:var(--brand);background:var(--brand-l)}
+.cell.err{border-color:var(--bad)}
+.pi{display:flex;align-items:center;gap:3px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:2px 3px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;font-size:.74rem}
+.pi .pn{flex:1;min-width:0;overflow:hidden;line-height:1.1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.pi.ok{border-color:var(--ok);background:var(--okbg)}
+.pi.bad{border-color:var(--bad);background:var(--badbg)}
+.pi.miss{border:1px dashed var(--warn);background:var(--warnbg);cursor:default;touch-action:auto}
+.pi .q{font-weight:700;color:var(--warn);padding-right:4px}
+.rm{padding:0 5px;border:0;background:transparent;color:var(--mute);font-size:1rem;line-height:1.2}
+.rm:hover{color:var(--bad)}
+@media(hover:hover){.rm{display:none}.pi:hover .rm{display:inline}}
+.col-r{align-self:start}
+.ico{flex:none}
+.ghost{position:fixed;left:0;top:0;z-index:99;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35));opacity:.95}
+body.dragging{cursor:grabbing}
+body.dragging *{cursor:grabbing!important}
+#result{margin-top:12px;border-radius:11px;padding:10px 12px;font-size:.92rem;display:none}
+#result.ok{display:block;background:var(--okbg);border:1px solid var(--ok)}
+#result.ko{display:block;background:var(--badbg);border:1px solid var(--bad)}
+#result ul{margin:6px 0 0;padding-left:18px}
+#result .aside{display:block;margin-top:6px;color:var(--warn)}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(30px);background:#1c2733;color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:.25s;z-index:100;max-width:90vw;font-size:.9rem;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+details summary{cursor:pointer;font-weight:600;color:var(--brand-d)}
+textarea{min-height:70px;font:12px/1.3 ui-monospace,monospace;word-break:break-all}
+.modal{position:fixed;inset:0;background:rgba(10,20,30,.7);display:none;align-items:center;justify-content:center;z-index:120;padding:14px}
+.modal.show{display:flex}
+.modal .mbox{background:var(--card);border-radius:14px;max-width:min(1100px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px;padding:14px}
+.modal .mimg{overflow:auto;border:1px solid var(--line);border-radius:8px}
+.modal img{display:block;max-width:100%;height:auto;-webkit-touch-callout:default}
+.modal a.dl{display:inline-block;text-decoration:none;background:var(--brand);color:#fff;font-weight:600;padding:8px 14px;border-radius:9px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.8rem;color:var(--mute);margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>💊 Pastillero semanal</h1>
+  <p>Registra los medicamentos del paciente y arrastra cada toma a su casilla del pastillero. Casos ficticios con fines didácticos: las pautas están simplificadas.</p>
+</header>
+<main>
+  <section class="card" id="paciente">
+    <h2>1 · Paciente</h2>
+    <label for="p-alumno">Alumno/s</label>
+    <input id="p-alumno" placeholder="Nombre y apellidos (si sois pareja, los dos)" maxlength="100">
+    <label for="p-case">Cargar un caso de ejemplo</label>
+    <div class="row"><select id="p-case"></select><button class="sec" id="b-case" style="flex:none">Cargar</button></div>
+    <div class="row">
+      <div class="w2"><label for="p-name">Nombre</label><input id="p-name" placeholder="Ej.: Antonio R."></div>
+      <div><label for="p-age">Edad</label><input id="p-age" inputmode="numeric" placeholder="78"></div>
+    </div>
+    <label for="p-notes">Observaciones (alergias, dificultad para tragar…)</label>
+    <input id="p-notes" placeholder="Opcional">
+  </section>
+
+  <section class="card" id="formcard">
+    <h2 id="form-title">2 · Añadir medicamento</h2>
+    <form id="medform" autocomplete="off">
+      <label for="f-name">Nombre del medicamento</label>
+      <input id="f-name" placeholder="Ej.: Enalapril" maxlength="60">
+      <div class="row">
+        <div class="w2"><label for="f-dose">Dosis</label><input id="f-dose" inputmode="decimal" placeholder="10" maxlength="10"></div>
+        <div><label for="f-unit">Unidad</label><select id="f-unit"></select></div>
+      </div>
+      <div class="row">
+        <div><label for="f-form">Forma farmacéutica</label><select id="f-form"></select></div>
+        <div><label for="f-via">Vía de administración</label><select id="f-via"></select></div>
+      </div>
+      <div class="row">
+        <div class="w2"><label for="f-qty">Cantidad por toma</label>
+          <div class="row"><input id="f-qty" type="number" min="0.25" step="0.25" value="1" style="min-width:0"><span class="unit" id="qtyUnit">comp.</span></div></div>
+      </div>
+      <label for="f-cada">Pauta · frecuencia de las tomas</label>
+      <select id="f-cada"></select>
+      <label>Días de la semana</label>
+      <div class="chips" id="f-days"></div>
+      <label for="f-obs">Indicaciones (opcional)</label>
+      <input id="f-obs" placeholder="Ej.: en ayunas, tomar con alimento…" maxlength="80">
+      <label>Color</label>
+      <div class="chips" id="f-colors"></div>
+      <div class="err" id="ferr" role="alert"></div>
+      <div class="btns">
+        <button class="pri" type="submit" id="b-save">Añadir al botiquín</button>
+        <button class="sec" type="button" id="b-cancel" hidden>Cancelar</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card" id="botiquin">
+    <h2>3 · Botiquín del paciente</h2>
+    <p class="hint">Arrastra desde el icono ⠿ (o toca un medicamento y luego una casilla). Cada arrastre coloca <b>una toma</b>.</p>
+    <div id="meds"></div>
+  </section>
+
+  <section class="card col-r">
+    <h2 id="box-title">4 · Pastillero semanal</h2>
+    <p class="hint" id="selhint">Arrastra cada medicamento a la casilla que le corresponda. Para quitar una toma, pulsa × o arrástrala de vuelta al botiquín.</p>
+    <div class="boxwrap"><div class="box"><div id="grid"></div></div></div>
+    <div class="legend"><span>🌅 Desayuno</span><span>☀️ Comida</span><span>🍎 Merienda</span><span>🌙 Al acostarse</span></div>
+    <h3 style="margin:18px 0 4px;font-size:1.02rem">💉 Administración aparte</h3>
+    <div class="boxwrap"><div class="box aparte"><div id="grid2"></div></div></div>
+    <div class="btns">
+      <button class="pri" id="b-jpg">Guárdalo como imagen y envíaselo al profe</button>
+      <button class="sec" id="b-clear">Vaciar pastillero</button>
+    </div>
+    <div id="result" role="status" aria-live="polite"></div>
+  </section>
+</main>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Imagen del pastillero">
+  <div class="mbox">
+    <div class="mimg"><img id="jpgimg" alt="Imagen del pastillero semanal"></div>
+    <p class="hint" style="margin:0">Pulsa «Descargar JPG». Si no se descarga, mantén pulsada la imagen (o clic derecho) y elige «Guardar imagen».</p>
+    <div class="btns" style="margin:0"><a class="dl" id="jpgdl" download="pastillero.jpg" href="#">⬇ Descargar JPG</a><button class="sec" id="jpgclose" type="button">Cerrar</button></div>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DAYS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const DS=['L','M','X','J','V','S','D'];
+const SLOTS=[{n:'Desayuno',e:'🌅'},{n:'Comida',e:'☀️'},{n:'Merienda',e:'🍎'},{n:'Al acostarse',e:'🌙'}];
+const VIAS={oral:'Oral',sublingual:'Sublingual',topica:'Tópica (cutánea)',transdermica:'Transdérmica',inhalatoria:'Inhalatoria',subcutanea:'Subcutánea',intramuscular:'Intramuscular',rectal:'Rectal',oftalmica:'Oftálmica',nasal:'Nasal',otica:'Ótica',vaginal:'Vaginal'};
+const FORMS={
+  comprimido:{l:'Comprimido',q:'comp.',v:'oral',w:0},
+  capsula:{l:'Cápsula',q:'cáps.',v:'oral',w:0},
+  sobre:{l:'Sobre',q:'sobre(s)',v:'oral',w:1},
+  gotas:{l:'Gotas orales',q:'gotas',v:'oral',w:1},
+  jarabe:{l:'Jarabe / solución',q:'ml',v:'oral',w:1},
+  parche:{l:'Parche',q:'parche',v:'transdermica',w:0},
+  inhalador:{l:'Inhalador',q:'inhal.',v:'inhalatoria',w:0},
+  inyectable:{l:'Inyectable',q:'inyec.',v:'subcutanea',w:0},
+  supositorio:{l:'Supositorio',q:'supos.',v:'rectal',w:0},
+  colirio:{l:'Colirio',q:'gotas',v:'oftalmica',w:0},
+  pomada:{l:'Crema / pomada / gel',q:'aplic.',v:'topica',w:0},
+  spray:{l:'Spray / pulverizador',q:'pulv.',v:'nasal',w:0}
+};
+const UNITS=['mg','g','µg','UI','ml','mg/ml','mg/5 ml','g/5 ml','mg/g','mg/24 h','µg/dosis','%'];
+const PAL=['#e5484d','#3e7bfa','#f5a524','#2fb67c','#8e4ec6','#e93d82','#12a594','#7c7f86'];
+const KEY='pastillero-cae-v1';
+const ALL=[0,1,2,3,4,5,6];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const joinEs=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' y '+a[a.length-1];
+
+let S={patient:{name:'',age:'',notes:''},alumno:'',meds:[],grid:{}};
+let nextId=1,editing=null,selected=null,result=null,curColor=PAL[0],justDragged=false;
+const warned=new Set();
+
+/* ---------- datos ---------- */
+const SL={24:[0],12:[0,3],8:[0,2,3],6:[0,1,2,3]};
+function cleanMed(m){
+  if(!m||typeof m!=='object')return null;
+  const name=String(m.name||'').trim().slice(0,60); if(!name)return null;
+  const form=FORMS[m.form]?m.form:'comprimido';
+  let cada=Number(m.cada);
+  if(![6,8,12,24].includes(cada)){const n=Array.isArray(m.slots)?new Set(m.slots).size:1;cada={1:24,2:12,3:8,4:6}[n]||24;}
+  const noche=cada===24&&(m.noche===true||(m.noche===undefined&&Array.isArray(m.slots)&&m.slots.length===1&&m.slots[0]>=2));
+  const slots=noche?[3]:SL[cada];
+  const days=[...new Set((Array.isArray(m.days)?m.days:[]).map(Number).filter(x=>x>=0&&x<7))].sort();
+  return {id:+m.id||0,name,dose:String(m.dose||'').slice(0,10),unit:UNITS.includes(m.unit)?m.unit:'mg',form,via:VIAS[m.via]?m.via:FORMS[form].v,
+    qty:Math.max(0.25,Number(m.qty)||1),cada,noche,slots,days:days.length?days:ALL.slice(),obs:String(m.obs||'').slice(0,80),
+    color:PAL.includes(m.color)?m.color:PAL[0]};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);
+    if(o&&Array.isArray(o.meds)){S.patient=Object.assign(S.patient,o.patient||{});S.alumno=String(o.alumno||'').slice(0,100);S.meds=o.meds.map(cleanMed).filter(Boolean);S.grid=o.grid&&typeof o.grid==='object'?o.grid:{};}}}catch(e){}
+  S.meds.forEach((m,i)=>{if(!m.id)m.id=i+1});
+  nextId=Math.max(0,...S.meds.map(m=>m.id))+1;
+  const ids=new Set(S.meds.map(m=>m.id));
+  Object.keys(S.grid).forEach(k=>{S.grid[k]=(Array.isArray(S.grid[k])?S.grid[k]:[]).filter(id=>ids.has(id))});
+}
+const medById=id=>S.meds.find(m=>m.id===id);
+const inBox=m=>m.via==='oral';
+const doseTxt=m=>m.dose?`${m.dose} ${m.unit}`:'';
+function daysTxt(d){
+  if(d.length===7)return 'todos los días';
+  if(d.join()==='0,1,2,3,4')return 'de lunes a viernes';
+  return joinEs(d.map(i=>DAYS[i].toLowerCase()));
+}
+function pautaTxt(m){
+  const qn=FORMS[m.form].q,q=`${m.qty===0.5?'½':m.qty} ${m.qty===1&&qn==='gotas'?'gota':qn}`;
+  return `${q} cada ${m.cada} horas${m.noche?' (dosis nocturna)':''} · ${daysTxt(m.days)}`;
+}
+
+/* ---------- iconos ---------- */
+function icon(f,c,s=26){
+  const st='stroke="rgba(0,0,0,.35)" stroke-width="1.5"';let b;
+  switch(f){
+    case 'comprimido':b=`<circle cx="16" cy="16" r="11" fill="${c}" ${st}/><path d="M7 16h18" stroke="rgba(255,255,255,.8)" stroke-width="2"/>`;break;
+    case 'capsula':b=`<g transform="rotate(-40 16 16)"><path d="M10 10H16V22H10A6 6 0 0 1 10 10Z" fill="${c}" ${st}/><path d="M16 10H22A6 6 0 0 1 22 22H16Z" fill="#fff" ${st}/></g>`;break;
+    case 'gotas':b=`<path d="M16 4C16 4 7 14 7 20a9 9 0 0 0 18 0C25 14 16 4 16 4Z" fill="${c}" ${st}/><path d="M12 20a4 4 0 0 0 3 4" stroke="rgba(255,255,255,.8)" stroke-width="2" fill="none" stroke-linecap="round"/>`;break;
+    case 'jarabe':b=`<rect x="11" y="3" width="10" height="5" rx="1.5" fill="#cbd5e1" ${st}/><rect x="8" y="8" width="16" height="21" rx="4" fill="${c}" ${st}/><rect x="8" y="15" width="16" height="7" fill="rgba(255,255,255,.8)"/>`;break;
+    case 'sobre':b=`<rect x="5" y="8" width="22" height="17" rx="2" fill="${c}" ${st}/><path d="M5 12h22" stroke="rgba(255,255,255,.75)" stroke-width="2" stroke-dasharray="2 2"/>`;break;
+    case 'parche':b=`<rect x="6" y="6" width="20" height="20" rx="6" fill="${c}" ${st}/><circle cx="16" cy="16" r="6" fill="rgba(255,255,255,.75)"/>`;break;
+    case 'inhalador':b=`<rect x="10" y="4" width="9" height="18" rx="2" fill="${c}" ${st}/><path d="M10 22h14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-8a6 6 0 0 1-6-6Z" fill="#cbd5e1" ${st}/>`;break;
+    case 'colirio':b=`<rect x="10" y="12" width="12" height="16" rx="3" fill="${c}" ${st}/><rect x="12" y="6" width="8" height="6" rx="1.5" fill="#cbd5e1" ${st}/><path d="M16 1.5C16 1.5 13.5 4 13.5 5.3a2.5 2.5 0 0 0 5 0C18.5 4 16 1.5 16 1.5Z" fill="#5aa9e6"/>`;break;
+    case 'pomada':b=`<path d="M6 11h17l3 3-3 3H6Z" fill="${c}" ${st}/><rect x="22" y="12" width="6" height="4" rx="1" fill="#cbd5e1" ${st}/><path d="M9 14h8" stroke="rgba(255,255,255,.8)" stroke-width="2"/>`;break;
+    case 'spray':b=`<rect x="9" y="12" width="12" height="17" rx="3" fill="${c}" ${st}/><rect x="12" y="8" width="6" height="4" fill="#cbd5e1" ${st}/><path d="M12 6h9v3h-9ZM22 7.5h3M22 5.5h2.5M22 9.5h2.5" stroke="#64748b" stroke-width="1.6" stroke-linecap="round"/>`;break;
+    case 'inyectable':b=`<g transform="rotate(45 16 16)"><rect x="9" y="12" width="14" height="8" rx="2" fill="${c}" ${st}/><path d="M23 16h5M9 16H4M4 12v8" stroke="#64748b" stroke-width="2" stroke-linecap="round"/></g>`;break;
+    default:b=`<path d="M6 16C6 10 12 8 18 8h8v16h-8C12 24 6 22 6 16Z" fill="${c}" ${st}/>`;
+  }
+  return `<svg class="ico" width="${s}" height="${s}" viewBox="0 0 32 32" aria-hidden="true">${b}</svg>`;
+}
+
+/* ---------- render ---------- */
+function renderMeds(){
+  const el=$('#meds');
+  if(!S.meds.length){el.innerHTML='<p class="empty">Aún no hay medicamentos. Añade uno con el formulario o carga un caso de ejemplo.</p>';return;}
+  el.innerHTML=S.meds.map(m=>`<div class="med ${selected===m.id?'sel':''}" data-med="${m.id}" tabindex="0" role="button" aria-pressed="${selected===m.id}" aria-label="Seleccionar ${esc(m.name)}">
+    <div class="grab" title="Arrastrar">${icon(m.form,m.color,34)}</div>
+    <div class="mi"><strong>${esc(m.name)}</strong> <span class="dose">${esc(doseTxt(m))}</span><br><small>${esc(FORMS[m.form].l)} · vía ${esc(VIAS[m.via].toLowerCase())} · ${esc(pautaTxt(m))}</small>${m.obs?`<br><small class="obs">${esc(m.obs)}</small>`:''}</div>
+    <div class="acts"><button class="mini" data-edit="${m.id}" title="Editar" aria-label="Editar ${esc(m.name)}">✎</button><button class="mini" data-del="${m.id}" title="Eliminar" aria-label="Eliminar ${esc(m.name)}">🗑</button></div>
+  </div>`).join('');
+}
+function gridHTML(pre){
+  let h='<div></div>'+DAYS.map((d,i)=>`<div class="dh">${d}</div>`).join('');
+  SLOTS.forEach((s,si)=>{
+    h+=`<div class="sh"><span>${s.e}</span><span>${s.n}</span></div>`;
+    for(let d=0;d<7;d++){
+      const k=pre+d+'-'+si,items=S.grid[k]||[],r=result&&result[k];
+      let inner=items.map((id,idx)=>{
+        const m=medById(id);if(!m)return '';
+        const cls=r?(r.bad.includes(idx)?'bad':'ok'):'';
+        const tip=`${m.name} ${doseTxt(m)} · ${m.qty===0.5?'½':m.qty} ${FORMS[m.form].q} · vía ${VIAS[m.via].toLowerCase()}`;
+        return `<div class="pi ${cls}" data-placed="${k}" data-idx="${idx}" data-id="${id}" title="${esc(tip)}">${icon(m.form,m.color,22)}<span class="pn">${esc(m.name)}</span><button class="rm" data-rm="${k}|${idx}" aria-label="Quitar ${esc(m.name)}">×</button></div>`;
+      }).join('');
+      if(r)inner+=r.missing.map(id=>{const m=medById(id);return m?`<div class="pi miss" title="Falta esta toma">${icon(m.form,m.color,22)}<span class="pn">${esc(m.name)}</span><span class="q">?</span></div>`:''}).join('');
+      h+=`<div class="cell ${r&&(r.bad.length||r.missing.length)?'err':''}" data-cell="${k}" tabindex="0" aria-label="${DAYS[d]}, ${s.n}">${inner}</div>`;
+    }
+  });
+  return h;
+}
+function renderGrid(){$('#grid').innerHTML=gridHTML('');$('#grid2').innerHTML=gridHTML('a:');}
+function renderTitle(){
+  const n=S.patient.name&&S.patient.name.trim();
+  $('#box-title').textContent='4 · Pastillero semanal'+(n?` de ${n}`:'');
+}
+function updateHint(){
+  const m=selected&&medById(selected);
+  $('#selhint').innerHTML=m?`Seleccionado: <b>${esc(m.name)}</b>. Toca una casilla para colocar una toma (toca de nuevo el medicamento para soltarlo).`:'Arrastra cada medicamento a la casilla que le corresponda. Para quitar una toma, pulsa × o arrástrala de vuelta al botiquín.';
+}
+function renderAll(){renderMeds();renderGrid();renderTitle();updateHint();showResult(null);}
+
+/* ---------- colocar / quitar ---------- */
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),3800);}
+function place(k,id){
+  const m=medById(id);if(!m)return false;
+  (S.grid[k]=S.grid[k]||[]).push(id);
+  result=null;save();renderGrid();showResult(null);return true;
+}
+function removeAt(k,idx){
+  if(S.grid[k]){S.grid[k].splice(idx,1);result=null;save();renderGrid();showResult(null);}
+}
+
+/* ---------- arrastrar (ratón y táctil) ---------- */
+document.addEventListener('dragstart',e=>e.preventDefault());
+document.addEventListener('pointerdown',e=>{
+  if(e.button>0||e.target.closest('button'))return;
+  const t=e.target.closest('[data-med],[data-placed]');if(!t||t.classList.contains('miss'))return;
+  const isMed=t.dataset.med!==undefined;
+  if(isMed&&e.pointerType==='touch'&&!e.target.closest('.grab'))return;
+  startDrag(e,{id:+(isMed?t.dataset.med:t.dataset.id),from:isMed?null:t.dataset.placed,idx:isMed?null:+t.dataset.idx});
+});
+function startDrag(e,p){
+  const sx=e.clientX,sy=e.clientY,m=medById(p.id);if(!m)return;
+  let ghost=null,over=null;
+  const mv=ev=>{
+    if(!ghost){
+      if(Math.hypot(ev.clientX-sx,ev.clientY-sy)<7)return;
+      ghost=document.createElement('div');ghost.className='ghost';ghost.innerHTML=icon(m.form,m.color,44);
+      document.body.appendChild(ghost);document.body.classList.add('dragging');
+    }
+    ghost.style.transform=`translate(${ev.clientX-22}px,${ev.clientY-22}px)`;
+    const t=document.elementFromPoint(ev.clientX,ev.clientY);
+    const c=t&&t.closest('[data-cell]');
+    if(over!==c){if(over)over.classList.remove('over');over=c;if(over)over.classList.add('over');}
+    $('#botiquin').classList.toggle('drop',!!(t&&t.closest('#botiquin'))&&p.from!==null);
+    ev.preventDefault();
+  };
+  const end=()=>{
+    window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',cancel);
+    if(ghost)ghost.remove();if(over)over.classList.remove('over');
+    document.body.classList.remove('dragging');$('#botiquin').classList.remove('drop');
+  };
+  const cancel=()=>end();
+  const up=ev=>{
+    const dragged=!!ghost;end();
+    if(!dragged)return;
+    justDragged=true;setTimeout(()=>justDragged=false,60);
+    const t=document.elementFromPoint(ev.clientX,ev.clientY);
+    const c=t&&t.closest('[data-cell]');
+    if(c){
+      if(p.from===c.dataset.cell)return;
+      if(place(c.dataset.cell,p.id)&&p.from!==null)removeAt(p.from,p.idx);
+    }else if(p.from!==null&&t&&t.closest('#botiquin')){removeAt(p.from,p.idx);}
+  };
+  window.addEventListener('pointermove',mv,{passive:false});
+  window.addEventListener('pointerup',up);
+  window.addEventListener('pointercancel',cancel);
+}
+
+/* ---------- seleccionar y colocar con toque / teclado ---------- */
+function toggleSel(id){selected=selected===id?null:id;renderMeds();updateHint();}
+document.addEventListener('click',e=>{
+  if(justDragged)return;
+  const rm=e.target.closest('[data-rm]');
+  if(rm){const [k,i]=rm.dataset.rm.split('|');removeAt(k,+i);return;}
+  const ed=e.target.closest('[data-edit]');if(ed){startEdit(+ed.dataset.edit);return;}
+  const del=e.target.closest('[data-del]');if(del){delMed(+del.dataset.del);return;}
+  const card=e.target.closest('[data-med]');if(card){toggleSel(+card.dataset.med);return;}
+  const cell=e.target.closest('[data-cell]');
+  if(cell&&selected!==null){place(cell.dataset.cell,selected);}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&selected!==null){selected=null;renderMeds();updateHint();return;}
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const t=e.target;
+  if(t.matches&&t.matches('[data-med]')){e.preventDefault();toggleSel(+t.dataset.med);}
+  else if(t.matches&&t.matches('[data-cell]')&&selected!==null){e.preventDefault();place(t.dataset.cell,selected);}
+});
+
+/* ---------- formulario ---------- */
+function buildForm(){
+  $('#f-unit').innerHTML=UNITS.map(u=>`<option>${esc(u)}</option>`).join('');
+  $('#f-form').innerHTML=Object.entries(FORMS).map(([k,v])=>`<option value="${k}">${esc(v.l)}</option>`).join('');
+  $('#f-cada').innerHTML=[24,12,8,6].map(h=>`<option value="${h}">Cada ${h} horas</option>`).join('');
+  $('#f-days').innerHTML=DS.map((d,i)=>`<button type="button" class="dt" data-day="${i}" aria-pressed="true" title="${DAYS[i]}">${d}</button>`).join('');
+  $('#f-colors').innerHTML=PAL.map(c=>`<button type="button" class="sw" data-color="${c}" style="background:${c}" aria-pressed="false" aria-label="Color ${c}"></button>`).join('');
+  $('#f-via').innerHTML=Object.entries(VIAS).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('');
+  $('#f-form').addEventListener('change',()=>{$('#f-via').value=FORMS[$('#f-form').value].v;syncQty();});
+  $('#f-days').addEventListener('click',e=>{const b=e.target.closest('.dt');if(b)b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true');});
+  $('#f-colors').addEventListener('click',e=>{const b=e.target.closest('.sw');if(b)setColor(b.dataset.color);});
+}
+function syncQty(){$('#qtyUnit').textContent=FORMS[$('#f-form').value].q;}
+function setColor(c){curColor=c;document.querySelectorAll('.sw').forEach(b=>b.setAttribute('aria-pressed',b.dataset.color===c));}
+function resetForm(){
+  editing=null;$('#medform').reset();$('#f-unit').value='mg';$('#f-form').value='comprimido';$('#f-via').value='oral';$('#f-qty').value=1;
+  $('#f-cada').value='24';
+  document.querySelectorAll('.dt').forEach(b=>b.setAttribute('aria-pressed','true'));
+  setColor(PAL[S.meds.length%PAL.length]);syncQty();$('#ferr').textContent='';
+  $('#form-title').textContent='2 · Añadir medicamento';$('#b-save').textContent='Añadir al botiquín';$('#b-cancel').hidden=true;
+}
+function startEdit(id){
+  const m=medById(id);if(!m)return;editing=id;
+  $('#f-name').value=m.name;$('#f-dose').value=m.dose;$('#f-unit').value=m.unit;$('#f-form').value=m.form;$('#f-via').value=m.via;$('#f-qty').value=m.qty;$('#f-obs').value=m.obs;
+  $('#f-cada').value=String(m.cada);
+  document.querySelectorAll('.dt').forEach(b=>b.setAttribute('aria-pressed',m.days.includes(+b.dataset.day)));
+  setColor(m.color);syncQty();$('#ferr').textContent='';
+  $('#form-title').textContent='2 · Editar medicamento';$('#b-save').textContent='Guardar cambios';$('#b-cancel').hidden=false;
+  try{$('#formcard').scrollIntoView({behavior:'smooth',block:'start'})}catch(e){}
+}
+function delMed(id){
+  S.meds=S.meds.filter(m=>m.id!==id);
+  Object.keys(S.grid).forEach(k=>S.grid[k]=S.grid[k].filter(x=>x!==id));
+  if(selected===id)selected=null;if(editing===id)resetForm();
+  result=null;save();renderAll();
+}
+$('#medform').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=$('#f-name').value.trim();
+  const cada=+$('#f-cada').value;
+  const days=[...document.querySelectorAll('.dt')].filter(b=>b.getAttribute('aria-pressed')==='true').map(b=>+b.dataset.day);
+  const err=!name?'Escribe el nombre del medicamento.':!days.length?'Marca al menos un día de la semana.':'';
+  if(err){$('#ferr').textContent=err;return;}
+  const m=cleanMed({id:editing||nextId,name,dose:$('#f-dose').value.trim(),unit:$('#f-unit').value,form:$('#f-form').value,via:$('#f-via').value,
+    qty:parseFloat($('#f-qty').value)||1,cada,noche:!!(editing&&medById(editing)&&medById(editing).noche&&cada===24),days,obs:$('#f-obs').value.trim(),color:curColor});
+  if(editing){S.meds=S.meds.map(x=>x.id===editing?m:x);}else{m.id=nextId++;S.meds.push(m);}
+  resetForm();result=null;save();renderAll();
+});
+$('#b-cancel').addEventListener('click',resetForm);
+
+/* ---------- paciente ---------- */
+['name','age','notes'].forEach(f=>$('#p-'+f).addEventListener('input',e=>{S.patient[f]=e.target.value;save();renderTitle();}));
+$('#p-alumno').addEventListener('input',e=>{S.alumno=e.target.value;save();});
+function fillPatient(){$('#p-alumno').value=S.alumno||'';['name','age','notes'].forEach(f=>$('#p-'+f).value=S.patient[f]||'');}
+
+/* ---------- casos de ejemplo ---------- */
+const CASES=[{"t": "1 · Antonio R., 78 años — Hipertensión arterial, diabetes tipo 2 y glaucoma", "patient": {"name": "Antonio R.", "age": "78", "notes": "Vive solo; la hija revisa el pastillero cada domingo. Caso ficticio."}, "meds": [{"name": "Enalapril", "dose": "10", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Metformina", "dose": "850", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Tomar con alimento"}, {"name": "Omeprazol", "dose": "20", "unit": "mg", "form": "capsula", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "En ayunas"}, {"name": "Simvastatina", "dose": "20", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Timolol", "dose": "5", "unit": "mg/ml", "form": "colirio", "via": "oftalmica", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "En ambos ojos"}]}, {"t": "2 · Carmen L., 85 años — Insuficiencia cardiaca, hipotiroidismo y osteoporosis (polimedicada)", "patient": {"name": "Carmen L.", "age": "85", "notes": "Dificultad para tragar comprimidos grandes. Caso ficticio."}, "meds": [{"name": "Levotiroxina", "dose": "50", "unit": "µg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "En ayunas, 30 min antes de tomar alimento"}, {"name": "Furosemida", "dose": "40", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Alendronato", "dose": "70", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0], "obs": "Una vez a la semana, en ayunas y con un vaso de agua"}, {"name": "Calcio + vitamina D", "dose": "1000", "unit": "mg", "form": "sobre", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Disolver en agua"}, {"name": "Nitroglicerina", "dose": "5", "unit": "mg/24 h", "form": "parche", "via": "transdermica", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Cambiar cada día y retirar el anterior"}]}, {"t": "3 · Manuel P., 70 años — EPOC y cardiopatía isquémica", "patient": {"name": "Manuel P.", "age": "70", "notes": "Usa cámara de inhalación. Exfumador. Caso ficticio."}, "meds": [{"name": "Prednisona", "dose": "5", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Tomar con alimento"}, {"name": "Omeprazol", "dose": "20", "unit": "mg", "form": "capsula", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "En ayunas"}, {"name": "Salbutamol", "dose": "100", "unit": "µg/dosis", "form": "inhalador", "via": "inhalatoria", "qty": 2, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Con cámara"}, {"name": "Tiotropio", "dose": "2,5", "unit": "µg/dosis", "form": "inhalador", "via": "inhalatoria", "qty": 2, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Nitroglicerina", "dose": "10", "unit": "mg/24 h", "form": "parche", "via": "transdermica", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Cambiar cada día"}]}, {"t": "4 · Lucía G., 7 años — Asma alérgica con infección respiratoria", "patient": {"name": "Lucía G.", "age": "7", "notes": "Los padres preparan la medicación; no traga comprimidos enteros. Caso ficticio."}, "meds": [{"name": "Montelukast", "dose": "5", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Masticable"}, {"name": "Budesonida", "dose": "200", "unit": "µg/dosis", "form": "inhalador", "via": "inhalatoria", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Con cámara; enjuagar la boca"}, {"name": "Cetirizina", "dose": "10", "unit": "mg/ml", "form": "gotas", "via": "oral", "qty": 10, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Fluticasona", "dose": "27,5", "unit": "µg/dosis", "form": "spray", "via": "nasal", "qty": 2, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Una pulsación en cada fosa nasal"}, {"name": "Amoxicilina", "dose": "250", "unit": "mg/5 ml", "form": "jarabe", "via": "oral", "qty": 5, "cada": 8, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Tratamiento de 7 días"}]}, {"t": "5 · Pedro S., 66 años — Fibrilación auricular, ictus isquémico previo e hipertensión", "patient": {"name": "Pedro S.", "age": "66", "notes": "Hemiparesia leve derecha; toma la medicación con ayuda. Caso ficticio."}, "meds": [{"name": "Apixabán", "dose": "5", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Atorvastatina", "dose": "40", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Ramipril", "dose": "5", "unit": "mg", "form": "capsula", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Omeprazol", "dose": "20", "unit": "mg", "form": "capsula", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "En ayunas"}, {"name": "Mometasona", "dose": "1", "unit": "mg/g", "form": "pomada", "via": "topica", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Una vez al día en los brazos"}]}, {"t": "6 · Rosa M., 54 años — Artritis reumatoide y osteoporosis", "patient": {"name": "Rosa M.", "age": "54", "notes": "Revisión semanal en enfermería los sábados. Caso ficticio."}, "meds": [{"name": "Metotrexato", "dose": "2,5", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 6, "cada": 24, "noche": false, "days": [1], "obs": "UNA SOLA VEZ A LA SEMANA (martes)"}, {"name": "Ácido fólico", "dose": "5", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [2], "obs": "Al día siguiente del metotrexato"}, {"name": "Prednisona", "dose": "5", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Omeprazol", "dose": "20", "unit": "mg", "form": "capsula", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "En ayunas"}, {"name": "Etanercept", "dose": "50", "unit": "mg", "form": "inyectable", "via": "subcutanea", "qty": 1, "cada": 24, "noche": false, "days": [5], "obs": "Una vez a la semana (sábado)"}]}, {"t": "7 · José Luis F., 45 años — Epilepsia y migraña", "patient": {"name": "José Luis F.", "age": "45", "notes": "Conduce; evitar olvidos de dosis. Caso ficticio."}, "meds": [{"name": "Levetiracetam", "dose": "500", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Lamotrigina", "dose": "100", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Ácido fólico", "dose": "5", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Colecalciferol", "dose": "2000", "unit": "UI", "form": "gotas", "via": "oral", "qty": 10, "cada": 24, "noche": false, "days": [6], "obs": "Solo los domingos"}, {"name": "Cianocobalamina", "dose": "1000", "unit": "µg", "form": "inyectable", "via": "intramuscular", "qty": 1, "cada": 24, "noche": false, "days": [0], "obs": "Una vez a la semana, en enfermería"}]}, {"t": "8 · María del Carmen T., 62 años — Osteoporosis, ansiedad y reflujo gastroesofágico", "patient": {"name": "María del Carmen T.", "age": "62", "notes": "Alergia a penicilinas (ficticia). Caso ficticio."}, "meds": [{"name": "Alendronato", "dose": "70", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [4], "obs": "Viernes, en ayunas"}, {"name": "Calcio + vitamina D", "dose": "1000", "unit": "mg", "form": "sobre", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Disolver en agua"}, {"name": "Pantoprazol", "dose": "40", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Antes de tomar alimento"}, {"name": "Lorazepam", "dose": "1", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Estriol", "dose": "1", "unit": "mg/g", "form": "pomada", "via": "vaginal", "qty": 1, "cada": 24, "noche": true, "days": [0, 2, 4], "obs": "Con aplicador, tres veces por semana"}]}, {"t": "9 · Francisco J., 58 años — Enfermedad renal crónica e hipertensión", "patient": {"name": "Francisco J.", "age": "58", "notes": "Restricción de líquidos y de potasio. Caso ficticio."}, "meds": [{"name": "Furosemida", "dose": "40", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Carvedilol", "dose": "6,25", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Calcitriol", "dose": "0,25", "unit": "µg", "form": "capsula", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Sevelámero", "dose": "800", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Tomar con alimento"}, {"name": "Darbepoetina", "dose": "40", "unit": "µg", "form": "inyectable", "via": "subcutanea", "qty": 1, "cada": 24, "noche": false, "days": [1], "obs": "Una vez a la semana (martes)"}]}, {"t": "10 · Dolores V., 74 años — Diabetes tipo 2 con insulina, neuropatía periférica e hipertensión ocular", "patient": {"name": "Dolores V.", "age": "74", "notes": "Se administra la insulina ella misma con pluma. Caso ficticio."}, "meds": [{"name": "Insulina glargina", "dose": "20", "unit": "UI", "form": "inyectable", "via": "subcutanea", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Metformina", "dose": "1000", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Gabapentina", "dose": "300", "unit": "mg", "form": "capsula", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Atorvastatina", "dose": "20", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Brimonidina", "dose": "2", "unit": "mg/ml", "form": "colirio", "via": "oftalmica", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}]}, {"t": "11 · Santiago B., 35 años — Enfermedad de Crohn", "patient": {"name": "Santiago B.", "age": "35", "notes": "Trabaja a turnos; revisar horarios. Caso ficticio."}, "meds": [{"name": "Azatioprina", "dose": "50", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Mesalazina", "dose": "1", "unit": "g", "form": "supositorio", "via": "rectal", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Budesonida", "dose": "3", "unit": "mg", "form": "capsula", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Colecalciferol", "dose": "2000", "unit": "UI", "form": "gotas", "via": "oral", "qty": 10, "cada": 24, "noche": false, "days": [6], "obs": "Solo los domingos"}, {"name": "Loperamida", "dose": "2", "unit": "mg", "form": "capsula", "via": "oral", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}]}, {"t": "12 · Ana B., 29 años — Trastorno bipolar", "patient": {"name": "Ana B.", "age": "29", "notes": "Supervisión de la medicación por su familia. Caso ficticio."}, "meds": [{"name": "Litio", "dose": "400", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 12, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Olanzapina", "dose": "10", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Haloperidol", "dose": "2", "unit": "mg/ml", "form": "gotas", "via": "oral", "qty": 10, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Nicotina", "dose": "21", "unit": "mg/24 h", "form": "parche", "via": "transdermica", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Deshabituación tabáquica"}, {"name": "Lorazepam", "dose": "1", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}]}, {"t": "13 · Josefa M., 81 años — Enfermedad de Parkinson, depresión y estreñimiento crónico", "patient": {"name": "Josefa M.", "age": "81", "notes": "Temblor que dificulta manipular blísteres. Caso ficticio."}, "meds": [{"name": "Levodopa/carbidopa", "dose": "100/25", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 8, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Lejos de las ingestas de alimento"}, {"name": "Rasagilina", "dose": "1", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Sertralina", "dose": "50", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Lactulosa", "dose": "10", "unit": "g", "form": "sobre", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Rotigotina", "dose": "4", "unit": "mg/24 h", "form": "parche", "via": "transdermica", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Cambiar cada día y rotar la zona"}]}, {"t": "14 · Pablo R., 52 años — Infarto de miocardio reciente y dislipemia", "patient": {"name": "Pablo R.", "age": "52", "notes": "Fumador en deshabituación. Caso ficticio."}, "meds": [{"name": "Ácido acetilsalicílico", "dose": "100", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": "Tomar con alimento"}, {"name": "Clopidogrel", "dose": "75", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Atorvastatina", "dose": "80", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": true, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Bisoprolol", "dose": "2,5", "unit": "mg", "form": "comprimido", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}, {"name": "Ramipril", "dose": "2,5", "unit": "mg", "form": "capsula", "via": "oral", "qty": 1, "cada": 24, "noche": false, "days": [0, 1, 2, 3, 4, 5, 6], "obs": ""}]}];
+function buildCases(){$('#p-case').innerHTML=CASES.map((c,i)=>`<option value="${i}">${esc(c.t)}</option>`).join('');}
+function loadCase(c){
+  S.patient=Object.assign({name:'',age:'',notes:''},c.patient);
+  S.meds=c.meds.map((m,i)=>{const x=cleanMed(Object.assign({color:PAL[i%PAL.length]},m));x.id=i+1;return x});
+  S.grid={};nextId=S.meds.length+1;selected=null;result=null;resetForm();fillPatient();save();renderAll();
+}
+$('#b-case').addEventListener('click',()=>loadCase(CASES[+$('#p-case').value]));
+
+/* ---------- comprobar ---------- */
+function expected(){
+  const ex={};
+  S.meds.forEach(m=>{m.days.forEach(d=>m.slots.forEach(s=>{const kk=(inBox(m)?'':'a:')+d+'-'+s;(ex[kk]=ex[kk]||[]).push(m.id)}))});
+  return ex;
+}
+function showResult(r,extra){
+  const el=$('#result');
+  if(!r){el.className='';el.innerHTML='';return;}
+  el.className=r.ko?'ko':'ok';el.innerHTML=r.html;
+}
+function check(){
+  if(!S.meds.length){toast('Añade medicamentos antes de comprobar.');return;}
+  const ex=expected();result={};
+  let good=0,bad=0,miss=0;const list=[];
+  for(const pre of ['','a:'])for(let d=0;d<7;d++)for(let s=0;s<SLOTS.length;s++){
+    const k=pre+d+'-'+s,placed=S.grid[k]||[],pool=(ex[k]||[]).slice(),r={bad:[],missing:[]};
+    placed.forEach((id,idx)=>{
+      const p=pool.indexOf(id);
+      if(p>=0){pool.splice(p,1);good++;}
+      else{r.bad.push(idx);bad++;const m=medById(id);list.push(`Sobra o está mal colocado: <b>${esc(m?m.name:'?')}</b> en ${DAYS[d].toLowerCase()}, ${SLOTS[s].n.toLowerCase()}${pre?' (administración aparte)':''}.`);}
+    });
+    pool.forEach(id=>{r.missing.push(id);miss++;const m=medById(id);list.push(`Falta: <b>${esc(m?m.name:'?')}</b> en ${DAYS[d].toLowerCase()}, ${SLOTS[s].n.toLowerCase()}${pre?' (administración aparte)':''}.`);});
+    result[k]=r;
+  }
+  const aparte=S.meds.filter(m=>!inBox(m)).map(m=>`${esc(m.name)} (vía ${esc(VIAS[m.via].toLowerCase())})`);
+  const nota='';
+  const total=good+miss;
+  let html;
+  if(!bad&&!miss)html=`<b>✅ ¡Pastillero correcto!</b> ${good} de ${total} tomas bien colocadas.${nota}`;
+  else html=`<b>${good} de ${total} tomas correctas</b> · ${bad} mal colocadas · ${miss} sin colocar.<ul>${list.slice(0,14).map(x=>`<li>${x}</li>`).join('')}</ul>${list.length>14?`<small>…y ${list.length-14} más.</small>`:''}${nota}`;
+  renderGrid();showResult({ko:!!(bad||miss),html});
+}
+function solve(){const ex=expected();S.grid={};Object.keys(ex).forEach(k=>S.grid[k]=ex[k].slice());result=null;save();renderGrid();showResult(null);}
+$('#b-clear').addEventListener('click',()=>{S.grid={};result=null;save();renderGrid();showResult(null);});
+
+/* ---------- exportar a JPG ---------- */
+function loadImg(src){return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src;});}
+function svgURL(m){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(icon(m.form,m.color,64).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" '));}
+async function exportJPG(){
+  const al=(S.alumno||'').trim();
+  if(!al){toast('Escribe tu nombre en «Alumno/s» (apartado 1) antes de guardar la imagen.');try{$('#p-alumno').focus();$('#p-alumno').scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}return;}
+  const placed=Object.values(S.grid).reduce((n,a)=>n+(a||[]).length,0);
+  if(!placed){toast('El pastillero está vacío: coloca alguna toma antes de guardar la imagen.');return;}
+  const imgs={};await Promise.all(S.meds.map(async m=>{imgs[m.id]=await loadImg(svgURL(m));}));
+  const W=1400,M=24,LW=128,G=6,CW=(W-2*M-LW-G*7)/7,IH=26,IG=4;
+  const FONT='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  const rowH=(pre,si)=>{let n=0;for(let d=0;d<7;d++)n=Math.max(n,(S.grid[pre+d+'-'+si]||[]).filter(id=>medById(id)).length);return Math.max(66,12+n*IH+Math.max(0,n-1)*IG);};
+  const secH=pre=>46+34+G+SLOTS.reduce((t,_,si)=>t+rowH(pre,si)+G,0)+24;
+  const TOP=84,H=TOP+secH('')+secH('a:')+34;
+  const cv=document.createElement('canvas');cv.width=W*2;cv.height=H*2;
+  const c=cv.getContext('2d');c.scale(2,2);
+  const rr=(x,y,w,h,r)=>{c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();};
+  const fit=(t,mw)=>{if(c.measureText(t).width<=mw)return t;while(t.length>1&&c.measureText(t+'…').width>mw)t=t.slice(0,-1);return t+'…';};
+  c.fillStyle='#fff';c.fillRect(0,0,W,H);
+  const pn=(S.patient.name||'').trim(),age=(S.patient.age||'').trim();
+  c.fillStyle='#0b5f6a';c.font=`700 26px ${FONT}`;c.textBaseline='alphabetic';
+  c.fillText('Pastillero semanal'+(pn?` · ${pn}`:'')+(age?` (${age} años)`:''),M,44);
+  c.fillStyle='#5b6b7c';c.font=`400 14px ${FONT}`;
+  c.fillStyle='#1c2733';c.font=`600 16px ${FONT}`;c.fillText(fit('Alumno/s: '+al,W-2*M-260),M,70);
+  c.fillStyle='#5b6b7c';c.font=`400 14px ${FONT}`;c.textAlign='right';
+  c.fillText(new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}),W-M,70);c.textAlign='left';
+  let y=TOP;
+  const section=(pre,title,bg1,bg2)=>{
+    c.fillStyle='#1c2733';c.font=`700 18px ${FONT}`;c.fillText(title,M,y+24);y+=46;
+    const bh=secH(pre)-46-14;
+    const gr=c.createLinearGradient(0,y,0,y+bh);gr.addColorStop(0,bg1);gr.addColorStop(1,bg2);
+    c.fillStyle=gr;rr(M,y,W-2*M,bh,16);c.fill();
+    const x0=M+LW+10,gw=CW;let yy=y+8;
+    for(let d=0;d<7;d++){const x=M+LW+d*(CW+G)+2;c.fillStyle='#0f7c8a';rr(x,yy,CW-4,34,8);c.fill();c.fillStyle='#fff';c.font=`700 15px ${FONT}`;c.textAlign='center';c.fillText(DAYS[d],x+(CW-4)/2,yy+22);c.textAlign='left';}
+    yy+=34+G;
+    SLOTS.forEach((sl,si)=>{
+      const h=rowH(pre,si);
+      c.fillStyle='#5b6b7c';c.font=`700 13px ${FONT}`;c.textAlign='center';
+      c.font=`22px ${FONT}`;c.fillText(sl.e,M+LW/2,yy+h/2);
+      c.font=`700 13px ${FONT}`;c.fillText(sl.n,M+LW/2,yy+h/2+20);c.textAlign='left';
+      for(let d=0;d<7;d++){
+        const x=M+LW+d*(CW+G)+2,cw=CW-4;
+        c.fillStyle='#f3f7fb';rr(x,yy,cw,h,10);c.fill();c.strokeStyle='#d7e0ea';c.lineWidth=1;c.stroke();
+        const ids=(S.grid[pre+d+'-'+si]||[]).filter(id=>medById(id));
+        ids.forEach((id,i)=>{
+          const m=medById(id),iy=yy+6+i*(IH+IG);
+          c.fillStyle='#fff';rr(x+5,iy,cw-10,IH,7);c.fill();c.strokeStyle='#c9d5e1';c.stroke();
+          if(imgs[id])c.drawImage(imgs[id],x+8,iy+3,20,20);
+          c.fillStyle='#1c2733';c.font=`500 13px ${FONT}`;c.fillText(fit(m.name,cw-10-34),x+32,iy+17);
+        });
+      }
+      yy+=h+G;
+    });
+    y+=bh+14;
+  };
+  section('','Pastillero','#e7eef6','#dbe5ef');
+  section('a:','Administración aparte','#f7efe2','#f0e5d1');
+  c.fillStyle='#8896a5';c.font=`400 12px ${FONT}`;c.fillText('Caso ficticio con fines didácticos · Técnicas básicas de enfermería',M,H-14);
+  const url=cv.toDataURL('image/jpeg',0.92);
+  $('#jpgimg').src=url;
+  const a=$('#jpgdl');a.href=url;
+  const slug=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase();
+  a.download=['pastillero',slug(pn),slug(al)].filter(Boolean).join('-')+'.jpg';
+  $('#modal').classList.add('show');
+}
+$('#b-jpg').addEventListener('click',()=>{exportJPG().catch(()=>toast('No se ha podido generar la imagen.'));});
+$('#jpgclose').addEventListener('click',()=>$('#modal').classList.remove('show'));
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')$('#modal').classList.remove('show');});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').classList.remove('show');});
+
+/* ---------- inicio ---------- */
+load();buildForm();buildCases();resetForm();fillPatient();renderAll();
+</script>
+</body>
+</html>

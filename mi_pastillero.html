@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pastillero semanal</title>
+<style>
+:root{
+  --bg:#eef3f8;--card:#fff;--ink:#1c2733;--mute:#5b6b7c;--line:#d7e0ea;--brand:#0f7c8a;--brand-d:#0b5f6a;--brand-l:#d9f0f2;
+  --cell:#f3f7fb;--bad:#d6334a;--warn:#b7791f;--warnbg:#fff4de;--okbg:#e2f6ec;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#10171e;--card:#18222c;--ink:#e6edf4;--mute:#97a8b9;--line:#2b3a49;--brand:#3cc0cf;--brand-d:#7fdbe6;--brand-l:#173a40;--cell:#202d3a;--warnbg:#3d3118;--okbg:#14382a}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{max-width:1300px;margin:0 auto;padding:14px 16px 4px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;justify-content:space-between}
+h1{margin:0;font-size:1.5rem}
+.who{display:flex;flex-direction:column;min-width:200px;flex:0 1 280px}
+label{display:block;font-size:.82rem;color:var(--mute);margin:10px 0 3px;font-weight:600}
+.who label{margin-top:0}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+input:focus,select:focus,button:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px}
+button.pri{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+button.pri:hover{background:var(--brand-d)}
+button.sec:hover{background:var(--cell)}
+button.danger{border-color:var(--bad);color:var(--bad)}
+.tabs{max-width:1300px;margin:6px auto 0;padding:0 16px;display:flex;gap:6px;overflow-x:auto}
+.tab-btn{border-radius:12px 12px 0 0;border-bottom:0;white-space:nowrap;font-weight:600;color:var(--mute);background:transparent}
+.tab-btn[aria-selected=true]{background:var(--card);color:var(--brand-d);border-color:var(--line)}
+main{max-width:1300px;margin:0 auto;padding:0 16px 40px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:0 14px 14px 14px;padding:16px}
+.panel[hidden]{display:none}
+h2{margin:0 0 6px;font-size:1.15rem}
+.hint{color:var(--mute);font-size:.9rem;margin:0 0 10px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+/* pastillero */
+.days{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
+.day{background:linear-gradient(#e7eef6,#dbe5ef);border-radius:14px;padding:8px;display:grid;gap:6px;align-content:start}
+.box2 .day{background:linear-gradient(#f7efe2,#f0e5d1)}
+@media(prefers-color-scheme:dark){.day{background:linear-gradient(#1d2a36,#17222c)}.box2 .day{background:linear-gradient(#2d2619,#251f14)}}
+.dh{background:var(--brand);color:#fff;text-align:center;font-weight:700;border-radius:9px;padding:5px 2px}
+.day.today .dh{background:var(--brand-d);box-shadow:0 0 0 3px #f5a524}
+.day.today .dh::after{content:" · hoy"}
+.slot{background:var(--cell);border-radius:10px;padding:5px;min-height:58px;box-shadow:inset 0 2px 5px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:4px}
+.sl{font-size:.78rem;color:var(--mute);font-weight:600;display:flex;gap:4px;align-items:center}
+.it{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:3px 6px}
+.it .in{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.it b{font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it small{color:var(--mute);font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ico{flex:none}
+@media(min-width:900px){
+  .days{grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:auto repeat(5,auto);column-gap:8px;row-gap:0}
+  .day{grid-row:span 6;grid-template-rows:subgrid}
+  .sl .t{display:none}
+  .sl{font-size:1rem}
+}
+.sect2{margin-top:22px}
+.legend{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:.84rem;color:var(--mute);margin:8px 0 0}
+.empty{text-align:center;padding:24px 10px;color:var(--mute)}
+.empty .big{font-size:2.4rem}
+/* medicamentos */
+.mlist{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));margin-top:10px}
+.mc{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;gap:10px;align-items:flex-start;background:var(--card)}
+.mc .gr{flex:none;width:44px;height:44px;border-radius:10px;background:var(--cell);display:grid;place-items:center}
+.mc .mi{flex:1;min-width:0;font-size:.92rem}
+.mc .mi .nm{font-weight:700;font-size:1rem}
+.mc .mi div{color:var(--mute)}
+.mc .mi .nm,.mc .mi .nm span{color:var(--ink)}
+.mc .mi .dz{color:var(--brand-d);font-weight:600}
+.mc .acts{display:flex;flex-direction:column;gap:6px}
+.mc .acts button{padding:5px 10px;font-size:.85rem}
+.tag{display:inline-block;font-size:.72rem;border-radius:999px;padding:1px 8px;background:var(--warnbg);color:var(--warn);border:1px solid var(--warn);margin-left:4px;vertical-align:middle}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;font-size:.9rem;background:var(--card);margin:0;color:var(--ink);font-weight:500}
+.chk input{width:auto;margin:0}
+.chk:has(input:checked){background:var(--brand-l);border-color:var(--brand)}
+.dt{width:38px;height:38px;padding:0;border-radius:50%;font-weight:700}
+.dt[aria-pressed=true]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.err{color:var(--bad);font-size:.88rem;min-height:1.2em;margin-top:6px}
+/* ventanas */
+.modal{position:fixed;inset:0;background:rgba(10,20,30,.7);display:none;align-items:flex-start;justify-content:center;z-index:120;padding:14px;overflow:auto}
+.modal.show{display:flex}
+.mbox{background:var(--card);border-radius:14px;width:min(560px,100%);padding:16px;margin:auto}
+#imgmodal .mbox{width:min(1100px,100%)}
+#imgmodal img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px}
+a.dl{display:inline-block;text-decoration:none;background:var(--brand);color:#fff;font-weight:600;padding:9px 14px;border-radius:10px}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(30px);background:#1c2733;color:#fff;padding:10px 16px;border-radius:10px;opacity:0;transition:.25s;z-index:200;max-width:90vw;font-size:.92rem;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* instrucciones */
+details{border:1px solid var(--line);border-radius:12px;margin:8px 0;background:var(--card)}
+summary{cursor:pointer;padding:11px 14px;font-weight:700;list-style:none;display:flex;gap:8px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"＋";margin-left:auto;color:var(--brand-d)}
+details[open] summary::after{content:"－"}
+details .body{padding:0 16px 12px}
+details ul,details ol{margin:6px 0 6px;padding-left:20px}
+details li{margin:3px 0}
+.note{background:var(--warnbg);border:1px solid var(--warn);border-radius:10px;padding:9px 12px;font-size:.92rem;margin:8px 0}
+.alert{background:#fde8eb;border:1px solid var(--bad);border-radius:10px;padding:9px 12px;font-size:.92rem;margin:8px 0;color:#7a1c2a}
+@media(prefers-color-scheme:dark){.alert{background:#42202a;color:#ffd7de}}
+table.eq{border-collapse:collapse;width:100%;font-size:.92rem;margin:6px 0}
+table.eq th,table.eq td{border:1px solid var(--line);padding:6px 8px;text-align:left}
+table.eq th{background:var(--brand-l)}
+h3{margin:14px 0 4px;font-size:1.02rem;color:var(--brand-d)}
+.pbar{max-width:1300px;margin:6px auto 0;padding:0 16px}
+.pchips{display:flex;gap:6px;flex-wrap:wrap}
+.pchip{border-radius:999px;font-weight:600;padding:7px 14px}
+.pchip[aria-selected=true]{background:var(--brand);border-color:var(--brand);color:#fff}
+.prow{display:flex;gap:10px 16px;flex-wrap:wrap;align-items:flex-end;margin-top:8px}
+.prow .who{flex:1 1 220px;max-width:340px}
+.pbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>💊 Pastillero semanal</h1>
+</header>
+<div class="pbar" id="pbar">
+  <div class="pchips" id="pchips" role="tablist" aria-label="Personas"></div>
+  <div class="prow">
+    <div class="who"><label for="nombre">Nombre de esta persona</label><input id="nombre" placeholder="Escribe un nombre" maxlength="60"></div>
+    <div class="pbtns"><button class="sec" id="p-add" type="button">＋ Añadir otra persona</button><span id="p-delbox"></span></div>
+  </div>
+</div>
+<div class="tabs" role="tablist" aria-label="Secciones">
+  <button class="tab-btn" role="tab" id="t-pastillero" data-tab="pastillero" aria-selected="true">💊 Mi pastillero</button>
+  <button class="tab-btn" role="tab" id="t-meds" data-tab="meds" aria-selected="false">📋 Mis medicamentos</button>
+  <button class="tab-btn" role="tab" id="t-info" data-tab="info" aria-selected="false">ℹ️ Instrucciones</button>
+</div>
+<main>
+  <!-- ============ PASTILLERO ============ -->
+  <section class="panel" id="tab-pastillero" role="tabpanel" aria-labelledby="t-pastillero">
+    <div id="empty" class="empty" hidden>
+      <div class="big">💊</div>
+      <p><b>Este pastillero está vacío.</b><br>Añade los medicamentos en la pestaña «Mis medicamentos» y aparecerán aquí solos.</p>
+      <button class="pri" id="go-meds">Añadir mis medicamentos</button>
+    </div>
+    <div id="full">
+      <h2>Pastillero de la semana</h2>
+      <p class="hint">Cada casilla muestra lo que te toca tomar ese día y a esa hora. El día de hoy aparece marcado.</p>
+      <div class="days" id="days1"></div>
+      <div class="legend"><span>🌅 Desayuno (mañana)</span><span>☀️ Comida (mediodía)</span><span>🍎 Merienda (tarde)</span><span>🍽️ Cena</span><span>🌙 Al acostarse</span></div>
+      <div class="sect2" id="sect2" hidden>
+        <h2>Otros tratamientos <small style="font-weight:400;color:var(--mute)">· no van dentro del pastillero</small></h2>
+        <p class="hint">Cremas, parches, gotas de ojos, inhaladores, inyecciones… se usan aparte, en el día y momento indicados.</p>
+        <div class="days box2" id="days2"></div>
+      </div>
+      <div class="btns"><button class="pri" id="b-img">📷 Guardar imagen para mi móvil</button></div>
+    </div>
+  </section>
+
+  <!-- ============ MEDICAMENTOS ============ -->
+  <section class="panel" id="tab-meds" role="tabpanel" aria-labelledby="t-meds" hidden>
+    <div class="row" style="align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 220px"><h2>Mis medicamentos</h2><p class="hint" style="margin:0">Añade, cambia o elimina tus medicamentos. El pastillero se actualiza solo.</p></div>
+      <button class="pri" id="b-add" style="flex:0 0 auto">＋ Añadir medicamento</button>
+    </div>
+    <div class="mlist" id="mlist"></div>
+  </section>
+
+  <!-- ============ INSTRUCCIONES ============ -->
+  <section class="panel" id="tab-info" role="tabpanel" aria-labelledby="t-info" hidden>
+    <h2>Instrucciones de administración</h2>
+    <div class="note"><b>Importante:</b> estas indicaciones son generales. Si tu médico, tu enfermera, tu farmacéutico o el prospecto te dicen algo distinto, haz caso a ellos. Ante cualquier duda, pregunta antes de tomar o cambiar nada.</div>
+
+    <h3>Antes de empezar</h3>
+    <details><summary>🧼 Reglas básicas para cualquier medicamento</summary><div class="body"><ul>
+      <li>Lávate las manos antes y después.</li>
+      <li>Comprueba el nombre, la dosis y la fecha de caducidad.</li>
+      <li>No cambies la dosis ni dejes un tratamiento por tu cuenta.</li>
+      <li>Guárdalos en un lugar fresco y seco, lejos de la luz, y fuera del alcance de los niños. Solo van en la nevera los que lo indiquen.</li>
+      <li>Lleva siempre tu lista de medicamentos a las consultas y a la farmacia.</li>
+    </ul></div></details>
+    <details><summary>🗓️ Cómo usar el pastillero</summary><div class="body"><ul>
+      <li>Prepáralo una vez por semana, con tiempo y sin prisa, con la receta o esta lista delante.</li>
+      <li>Si hay un cambio de tratamiento, actualiza «Mis medicamentos» y vuelve a preparar el pastillero.</li>
+      <li>Si te surge una duda sobre una pastilla, no la partas ni la mezcles: pregunta en la farmacia.</li>
+      <li>Los medicamentos que no son orales (parches, cremas, gotas, inhaladores…) no se guardan en el pastillero.</li>
+    </ul></div></details>
+
+    <h3>Pautas</h3>
+    <details><summary>⏰ Qué significa «cada 24, 12, 8 o 6 horas»</summary><div class="body">
+      <p>Es el tiempo que debe pasar entre una toma y la siguiente. En esta aplicación se colocan así por defecto (puedes cambiar los momentos si tu médico te indica otro horario):</p>
+      <table class="eq"><tr><th>Pauta</th><th>Tomas al día</th><th>Momentos</th></tr>
+      <tr><td>Cada 24 horas</td><td>1</td><td>Una vez al día, siempre a la misma hora</td></tr>
+      <tr><td>Cada 12 horas</td><td>2</td><td>Desayuno y al acostarse</td></tr>
+      <tr><td>Cada 8 horas</td><td>3</td><td>Desayuno, merienda y al acostarse</td></tr>
+      <tr><td>Cada 6 horas</td><td>4</td><td>Desayuno, comida, merienda y al acostarse</td></tr></table>
+      <p>Si tu médico te indica la toma en la cena, márcala a mano en «Mis medicamentos».</p>
+      <p>Procura tomarlo siempre a la misma hora para que haga efecto de forma constante.</p>
+    </div></details>
+    <details><summary>🍽️ «En ayunas», «con comida» y «antes o después de comer»</summary><div class="body"><ul>
+      <li><b>En ayunas:</b> con el estómago vacío, normalmente una hora antes o dos horas después de comer, salvo que te indiquen otra cosa.</li>
+      <li><b>Con comida:</b> durante o justo después de comer, para que sienten mejor.</li>
+      <li>Hay medicamentos que no deben tomarse con leche, café o antiácidos. Pregunta si tienes dudas.</li>
+    </ul></div></details>
+    <details><summary>❓ Se me ha olvidado una dosis</summary><div class="body"><ul>
+      <li><b>Nunca tomes el doble</b> para compensar.</li>
+      <li>Si te acuerdas pronto, tómala. Si ya casi es la hora de la siguiente, sáltate la olvidada y sigue como siempre.</li>
+      <li>Con algunos medicamentos (anticoagulantes, antiepilépticos, insulina, tratamientos semanales…) lo correcto depende del caso: consulta con tu farmacia, enfermera o médico.</li>
+    </ul></div></details>
+    <details><summary>📅 Medicamentos de una sola vez por semana</summary><div class="body"><p>Algunos se toman un único día a la semana. Marca solo ese día al añadirlos y no los tomes a diario por error. Si dudas del día, pregunta antes de tomarlos.</p></div></details>
+
+    <h3>Vías de administración</h3>
+    <details><summary>👄 Oral (por la boca): comprimidos, cápsulas, sobres, jarabes y gotas</summary><div class="body"><ul>
+      <li>Tómalos con un vaso de agua, sentado o de pie, no tumbado.</li>
+      <li>Traga los comprimidos y las cápsulas enteros. No los partas, mastiques ni abras salvo que te lo indiquen; algunos están hechos para soltarse despacio.</li>
+      <li>Los sobres se disuelven en agua y se beben enseguida.</li>
+      <li>Los jarabes y gotas se miden con el dosificador, la jeringa o el cuentagotas del envase, nunca con una cuchara de casa.</li>
+      <li>Si te cuesta tragar, no los machaques: pregunta si existe otra presentación.</li>
+    </ul></div></details>
+    <details><summary>👅 Sublingual (debajo de la lengua)</summary><div class="body"><ul>
+      <li>Coloca el comprimido debajo de la lengua y déjalo disolver.</li>
+      <li>No lo tragues, no lo mastiques y no bebas ni comas hasta que se haya disuelto.</li>
+    </ul></div></details>
+    <details><summary>🧴 Tópica (sobre la piel): cremas, pomadas y geles</summary><div class="body"><ul>
+      <li>Lávate las manos y limpia y seca la zona.</li>
+      <li>Extiende una capa fina y masajea suavemente hasta que se absorba, salvo que te indiquen otra cosa.</li>
+      <li>No lo apliques sobre heridas abiertas ni en ojos, boca o mucosas, a menos que te lo hayan indicado.</li>
+      <li>Lávate las manos después, salvo que la zona tratada sean las manos.</li>
+    </ul></div></details>
+    <details><summary>🩹 Transdérmica (parches)</summary><div class="body"><ul>
+      <li>Colócalo sobre piel limpia, seca, sin heridas y sin cremas. Si hay mucho vello, no lo arranques: recórtalo.</li>
+      <li>Retira el parche anterior antes de poner el nuevo y cambia la zona cada vez.</li>
+      <li>Presiona con la palma de la mano durante unos 30 segundos.</li>
+      <li>No lo cortes. Evita el calor directo (mantas eléctricas, bolsas calientes, sauna).</li>
+      <li>Dobla el parche usado por la mitad, con el adhesivo hacia dentro, y tíralo donde no lo alcancen niños ni mascotas.</li>
+    </ul></div></details>
+    <details><summary>🌬️ Inhalatoria (inhaladores)</summary><div class="body"><ul>
+      <li>Cada inhalador tiene su técnica: sigue el prospecto o pide en la farmacia o al personal de enfermería que te la enseñen.</li>
+      <li>En general: espira suavemente, coloca la boquilla entre los labios, inspira despacio y a fondo al accionarlo y aguanta la respiración unos 10 segundos.</li>
+      <li>Si te han indicado una segunda dosis, espera aproximadamente un minuto antes de repetir.</li>
+      <li>Si el inhalador lleva corticoide, enjuágate la boca con agua después y escúpela.</li>
+      <li>Las cápsulas que se usan con inhalador no se tragan.</li>
+    </ul></div></details>
+    <details><summary>👁️ Oftálmica (gotas o colirios para los ojos)</summary><div class="body"><ul>
+      <li>Lávate las manos. Con la cabeza inclinada hacia atrás, mira hacia arriba y tira suavemente del párpado inferior.</li>
+      <li>Echa una gota dentro de ese «bolsillo» sin que el cuentagotas toque el ojo ni las pestañas.</li>
+      <li>Cierra el ojo con suavidad uno o dos minutos y presiona la esquina interna, junto a la nariz.</li>
+      <li>Si usas dos colirios, espera unos 5 minutos entre uno y otro.</li>
+      <li>Si llevas lentes de contacto, pregunta si debes quitártelas antes. Tapa el frasco y no lo compartas.</li>
+    </ul></div></details>
+    <details><summary>👂 Ótica (gotas para los oídos)</summary><div class="body"><ul>
+      <li>Atempera el frasco unos minutos entre las manos: frío puede producir mareo.</li>
+      <li>Inclina la cabeza hacia el lado contrario, tira de la oreja hacia atrás y arriba y echa las gotas sin tocar el oído con el gotero.</li>
+      <li>Permanece así unos 5 minutos para que penetren.</li>
+    </ul></div></details>
+    <details><summary>👃 Nasal (sprays y gotas para la nariz)</summary><div class="body"><ul>
+      <li>Suénate suavemente antes de usarlo.</li>
+      <li>Inclina un poco la cabeza hacia delante y dirige el spray hacia la parte externa de cada fosa nasal, no hacia el centro (tabique).</li>
+      <li>Respira suave por la nariz mientras pulverizas y no aspires con fuerza después.</li>
+    </ul></div></details>
+    <details><summary>🔻 Rectal (supositorios)</summary><div class="body"><ul>
+      <li>Lávate las manos y retira el envoltorio. Si está blando, enfríalo unos minutos en la nevera.</li>
+      <li>Túmbate de lado con la pierna de abajo estirada y la de arriba doblada.</li>
+      <li>Introduce el supositorio por la punta, con suavidad, y mantén las nalgas juntas unos minutos.</li>
+      <li>Lávate las manos al terminar.</li>
+    </ul></div></details>
+    <details><summary>🌸 Vaginal (óvulos y cremas con aplicador)</summary><div class="body"><ul>
+      <li>Lávate las manos y túmbate con las rodillas dobladas.</li>
+      <li>Introduce el óvulo o el aplicador con suavidad, sin forzar.</li>
+      <li>Suele usarse por la noche, para que no se pierda. Lava el aplicador después.</li>
+    </ul></div></details>
+    <details><summary>💉 Subcutánea (inyecciones bajo la piel, como la insulina)</summary><div class="body"><ul>
+      <li>Hazlo solo si el personal sanitario te ha enseñado.</li>
+      <li>Lávate las manos y limpia la zona. Cambia el sitio cada vez (abdomen, muslos, parte de atrás de los brazos) para evitar bultos.</li>
+      <li>Sigue la técnica que te enseñaron para pellizcar la piel y para el ángulo de la aguja.</li>
+      <li>No reutilices las agujas. Tíralas en un contenedor rígido, nunca sueltas a la basura.</li>
+      <li>Conserva el medicamento como indique su prospecto (algunos van en la nevera).</li>
+    </ul></div></details>
+    <details><summary>💪 Intramuscular (inyecciones en el músculo)</summary><div class="body"><p>Lo normal es que te las ponga personal sanitario. No te inyectes ningún medicamento en el músculo si no te lo han enseñado y autorizado.</p></div></details>
+
+    <div class="alert"><b>Pide ayuda urgente (112)</b> si después de tomar un medicamento notas hinchazón de cara, labios o garganta, dificultad para respirar, ronchas por todo el cuerpo o mareo intenso.</div>
+  </section>
+</main>
+
+<!-- ventana: añadir / editar medicamento -->
+<div class="modal" id="medmodal" role="dialog" aria-modal="true" aria-labelledby="form-title">
+  <div class="mbox">
+    <h2 id="form-title">Añadir medicamento</h2>
+    <form id="medform" autocomplete="off">
+      <label for="f-name">Nombre del medicamento</label>
+      <input id="f-name" placeholder="Ej.: Enalapril" maxlength="60">
+      <label for="f-via">¿Cómo se administra? (vía)</label>
+      <select id="f-via"></select>
+      <label for="f-dose">Dosis (como pone en tu receta)</label>
+      <input id="f-dose" placeholder="Ej.: 1 comprimido de 10 mg" maxlength="50">
+      <label for="f-quick">Pauta</label>
+      <select id="f-quick">
+        <option value="0">Elijo yo los momentos del día</option>
+        <option value="24">Cada 24 horas (1 vez al día)</option>
+        <option value="12">Cada 12 horas (2 veces al día)</option>
+        <option value="8">Cada 8 horas (3 veces al día)</option>
+        <option value="6">Cada 6 horas (4 veces al día)</option>
+      </select>
+      <label>¿En qué momentos del día? (puedes cambiarlos)</label>
+      <div class="chips" id="f-slots"></div>
+      <label>¿Qué días?</label>
+      <div class="chips" id="f-days"></div>
+      <label for="f-notes">Notas (opcional)</label>
+      <input id="f-notes" placeholder="Ej.: en ayunas, con comida…" maxlength="80">
+      <div class="err" id="ferr" role="alert"></div>
+      <div class="btns"><button class="pri" type="button" id="b-save">Guardar</button><button class="sec" type="button" id="b-cancel">Cancelar</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- ventana: imagen -->
+<div class="modal" id="imgmodal" role="dialog" aria-modal="true" aria-label="Imagen del pastillero">
+  <div class="mbox">
+    <img id="jpgimg" alt="Imagen de mi pastillero semanal">
+    <p class="hint" style="margin:10px 0 0">Para tenerla en la galería del móvil: pulsa «Guardar en el móvil» o «Descargar JPG». Si no funciona, mantén el dedo pulsado sobre la imagen y elige «Guardar imagen».</p>
+    <div class="btns"><button class="pri" id="b-share" type="button">📲 Guardar en el móvil</button><a class="dl" id="jpgdl" download="mi-pastillero.jpg" href="#">⬇ Descargar JPG</a><button class="sec" id="jpgclose" type="button">Cerrar</button></div>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DAYS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const DS=['L','M','X','J','V','S','D'];
+const SLOTS=[{n:'Desayuno',e:'🌅'},{n:'Comida',e:'☀️'},{n:'Merienda',e:'🍎'},{n:'Cena',e:'🍽️'},{n:'Al acostarse',e:'🌙'}];
+const QUICK={24:[0],12:[0,4],8:[0,2,4],6:[0,1,2,4]};
+const VIAS={ // etiqueta, icono, ¿va en el pastillero?
+  oral:['Oral (por la boca)','comprimido',true],
+  sublingual:['Sublingual (debajo de la lengua)','comprimido',false],
+  topica:['Piel: crema, pomada o gel (tópica)','pomada',false],
+  transdermica:['Parche en la piel (transdérmica)','parche',false],
+  inhalatoria:['Inhalador (inhalatoria)','inhalador',false],
+  oftalmica:['Ojos: colirio (oftálmica)','colirio',false],
+  otica:['Oídos: gotas (ótica)','colirio',false],
+  nasal:['Nariz: spray o gotas (nasal)','spray',false],
+  rectal:['Supositorio (rectal)','supositorio',false],
+  vaginal:['Vaginal (óvulo o crema)','pomada',false],
+  subcutanea:['Inyección bajo la piel (subcutánea)','inyectable',false],
+  intramuscular:['Inyección en el músculo (intramuscular)','inyectable',false]
+};
+const PAL=['#e5484d','#3e7bfa','#f5a524','#2fb67c','#8e4ec6','#e93d82','#12a594','#7c7f86'];
+const KEY='mi-pastillero-v3',V2='mi-pastillero-v2',OLD='mi-pastillero-v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const joinEs=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' y '+a[a.length-1];
+let DB={pats:[],cur:0};
+let S={id:1,nombre:'',meds:[]};
+let editing=null,delId=null,lastBlob=null;
+
+/* ---------- datos ---------- */
+function clean(m){
+  if(!m||typeof m!=='object')return null;
+  const name=String(m.name||'').trim().slice(0,60);if(!name)return null;
+  const slots=[...new Set((Array.isArray(m.slots)?m.slots:[]).map(Number).filter(x=>x>=0&&x<5))].sort();
+  const days=[...new Set((Array.isArray(m.days)?m.days:[]).map(Number).filter(x=>x>=0&&x<7))].sort();
+  if(!slots.length||!days.length)return null;
+  const cada=[6,8,12,24].includes(+m.cada)&&QUICK[+m.cada].length===slots.length?+m.cada:0;
+  return {id:+m.id||0,name,via:VIAS[m.via]?m.via:'oral',dose:String(m.dose||'').slice(0,50),cada,slots,days,notes:String(m.notes||'').slice(0,80),color:PAL.includes(m.color)?m.color:PAL[0]};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
+function mkPat(o,id,mig){
+  const meds=(Array.isArray(o&&o.meds)?o.meds:[]).map(m=>{if(mig&&m&&Array.isArray(m.slots))m.slots=m.slots.map(x=>x===3?4:x);return clean(m);}).filter(Boolean);
+  meds.forEach((m,i)=>{if(!m.id)m.id=i+1});
+  return {id:+(o&&o.id)||id,nombre:String((o&&o.nombre)||'').slice(0,60),meds};
+}
+function load(){
+  try{
+    const r3=localStorage.getItem(KEY);
+    if(r3){const o=JSON.parse(r3);DB.pats=(Array.isArray(o.pats)?o.pats:[]).map((p,i)=>mkPat(p,i+1,false));DB.cur=+o.cur||0;}
+    else{const r2=localStorage.getItem(V2),r1=r2?null:localStorage.getItem(OLD),r=r2||r1;
+      if(r)DB.pats=[mkPat(JSON.parse(r),1,!!r1)];}
+  }catch(e){}
+  if(!DB.pats.length)DB.pats=[mkPat({},1,false)];
+  if(!DB.pats.some(p=>p.id===DB.cur))DB.cur=DB.pats[0].id;
+  S=DB.pats.find(p=>p.id===DB.cur);
+}
+const newMedId=()=>Math.max(0,...S.meds.map(m=>m.id))+1;
+const pname=p=>p.nombre.trim()||'Persona '+(DB.pats.indexOf(p)+1);
+let pdel=false;
+function renderPeople(){
+  $('#pchips').innerHTML=DB.pats.map(p=>`<button type="button" class="pchip" role="tab" data-pat="${p.id}" aria-selected="${p.id===DB.cur}">👤 ${esc(pname(p))}</button>`).join('');
+  $('#nombre').value=S.nombre;
+  $('#p-delbox').innerHTML=DB.pats.length<2?'':pdel?`<span class="hint" style="margin:0">¿Eliminar a ${esc(pname(S))} y todos sus medicamentos?</span> <button class="danger" type="button" id="p-delok">Sí, eliminar</button><button class="sec" type="button" id="p-delno">No</button>`:'<button class="sec danger" type="button" id="p-del">🗑 Eliminar a esta persona</button>';
+}
+function switchPat(id){
+  const p=DB.pats.find(x=>x.id===id);if(!p)return;
+  DB.cur=id;S=p;pdel=false;delId=null;resetForm();closeMed();save();renderPeople();renderAll();
+}
+const inBox=m=>VIAS[m.via][2];
+const medById=id=>S.meds.find(m=>m.id===id);
+function pautaTxt(m){
+  const mom=joinEs(m.slots.map(s=>SLOTS[s].n.toLowerCase()));
+  let d='';
+  if(m.days.length<7)d=m.days.join()==='0,1,2,3,4'?' · de lunes a viernes':' · solo '+joinEs(m.days.map(i=>DAYS[i].toLowerCase()));
+  return (m.cada?`Cada ${m.cada} horas · `:'')+mom+d;
+}
+
+/* ---------- iconos ---------- */
+function icon(f,c,s=26){
+  const st='stroke="rgba(0,0,0,.35)" stroke-width="1.5"';let b;
+  switch(f){
+    case 'comprimido':b=`<g transform="rotate(-40 16 16)"><rect x="3" y="9.5" width="26" height="13" rx="6.5" fill="${c}" ${st}/><path d="M16 9.5v13" stroke="rgba(0,0,0,.3)" stroke-width="1.5"/><path d="M16 9.5h7a6.5 6.5 0 0 1 0 13h-7Z" fill="rgba(255,255,255,.8)"/></g>`;break;
+    case 'parche':b=`<rect x="6" y="6" width="20" height="20" rx="6" fill="${c}" ${st}/><circle cx="16" cy="16" r="6" fill="rgba(255,255,255,.75)"/>`;break;
+    case 'inhalador':b=`<rect x="10" y="4" width="9" height="18" rx="2" fill="${c}" ${st}/><path d="M10 22h14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-8a6 6 0 0 1-6-6Z" fill="#cbd5e1" ${st}/>`;break;
+    case 'colirio':b=`<rect x="10" y="12" width="12" height="16" rx="3" fill="${c}" ${st}/><rect x="12" y="6" width="8" height="6" rx="1.5" fill="#cbd5e1" ${st}/><path d="M16 1.5C16 1.5 13.5 4 13.5 5.3a2.5 2.5 0 0 0 5 0C18.5 4 16 1.5 16 1.5Z" fill="#5aa9e6"/>`;break;
+    case 'pomada':b=`<path d="M6 11h17l3 3-3 3H6Z" fill="${c}" ${st}/><rect x="22" y="12" width="6" height="4" rx="1" fill="#cbd5e1" ${st}/><path d="M9 14h8" stroke="rgba(255,255,255,.8)" stroke-width="2"/>`;break;
+    case 'spray':b=`<rect x="9" y="12" width="12" height="17" rx="3" fill="${c}" ${st}/><rect x="12" y="8" width="6" height="4" fill="#cbd5e1" ${st}/><path d="M12 6h9v3h-9ZM22 7.5h3M22 5.5h2.5M22 9.5h2.5" stroke="#64748b" stroke-width="1.6" stroke-linecap="round"/>`;break;
+    case 'inyectable':b=`<g transform="rotate(45 16 16)"><rect x="9" y="12" width="14" height="8" rx="2" fill="${c}" ${st}/><path d="M23 16h5M9 16H4M4 12v8" stroke="#64748b" stroke-width="2" stroke-linecap="round"/></g>`;break;
+    default:b=`<path d="M6 16C6 10 12 8 18 8h8v16h-8C12 24 6 22 6 16Z" fill="${c}" ${st}/>`;
+  }
+  return `<svg class="ico" width="${s}" height="${s}" viewBox="0 0 32 32" aria-hidden="true">${b}</svg>`;
+}
+const icoOf=m=>icon(VIAS[m.via][1],m.color,m.via==='oral'?24:26);
+
+/* ---------- pestaña pastillero ---------- */
+function daysHTML(list){
+  const today=(new Date().getDay()+6)%7;
+  return DAYS.map((d,di)=>`<div class="day${di===today?' today':''}"><div class="dh">${d}</div>`+SLOTS.map((sl,si)=>{
+    const its=list.filter(m=>m.days.includes(di)&&m.slots.includes(si));
+    return `<div class="slot"><div class="sl"><span>${sl.e}</span><span class="t">${sl.n}</span></div>${its.map(m=>`<div class="it" title="${esc(m.name+(m.dose?' · '+m.dose:''))}">${icoOf(m)}<span class="in"><b>${esc(m.name)}</b>${m.dose?`<small>${esc(m.dose)}</small>`:''}</span></div>`).join('')}</div>`;
+  }).join('')+'</div>').join('');
+}
+function renderPastillero(){
+  const has=S.meds.length>0;
+  $('#empty').hidden=has;$('#full').hidden=!has;
+  if(!has)return;
+  $('#days1').innerHTML=daysHTML(S.meds.filter(inBox));
+  const otros=S.meds.filter(m=>!inBox(m));
+  $('#sect2').hidden=!otros.length;
+  $('#days2').innerHTML=otros.length?daysHTML(otros):'';
+}
+/* ---------- pestaña medicamentos ---------- */
+function renderList(){
+  const el=$('#mlist');
+  if(!S.meds.length){el.innerHTML='<p class="hint">Todavía no has añadido ningún medicamento. Pulsa «Añadir medicamento».</p>';return;}
+  el.innerHTML=S.meds.map(m=>`<div class="mc"><div class="gr">${icon(VIAS[m.via][1],m.color,34)}</div>
+    <div class="mi"><div class="nm">${esc(m.name)}${inBox(m)?'':'<span class="tag">fuera del pastillero</span>'}</div>
+      ${m.dose?`<div class="dz">${esc(m.dose)}</div>`:''}
+      <div>${esc(VIAS[m.via][0])}</div><div>${esc(pautaTxt(m))}</div>${m.notes?`<div>📝 ${esc(m.notes)}</div>`:''}</div>
+    <div class="acts">${delId===m.id
+      ?`<button class="danger" data-del-ok="${m.id}">Sí, eliminar</button><button class="sec" data-del-no="1">No</button>`
+      :`<button class="sec" data-edit="${m.id}">✎ Editar</button><button class="sec danger" data-del="${m.id}">🗑 Eliminar</button>`}</div></div>`).join('');
+}
+function renderAll(){renderPastillero();renderList();}
+
+/* ---------- pestañas ---------- */
+function showTab(t){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+  document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='tab-'+t);
+  try{window.scrollTo({top:0})}catch(e){}
+}
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+$('#go-meds').addEventListener('click',()=>{showTab('meds');openMed();});
+
+/* ---------- formulario ---------- */
+function buildForm(){
+  $('#f-via').innerHTML=Object.entries(VIAS).map(([k,v])=>`<option value="${k}">${esc(v[0])}</option>`).join('');
+  $('#f-slots').innerHTML=SLOTS.map((s,i)=>`<label class="chk"><input type="checkbox" value="${i}"> ${s.e} ${s.n}</label>`).join('');
+  $('#f-days').innerHTML=DS.map((d,i)=>`<button type="button" class="dt" data-day="${i}" aria-pressed="true" title="${DAYS[i]}">${d}</button>`).join('');
+  $('#f-days').addEventListener('click',e=>{const b=e.target.closest('.dt');if(b)b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true');});
+  $('#f-quick').addEventListener('change',()=>{const q=+$('#f-quick').value;if(q)setSlots(QUICK[q]);});
+}
+function setSlots(a){document.querySelectorAll('#f-slots input').forEach(i=>i.checked=a.includes(+i.value));}
+function resetForm(){
+  editing=null;$('#medform').reset();$('#f-via').value='oral';$('#f-quick').value='0';setSlots([]);
+  document.querySelectorAll('.dt').forEach(b=>b.setAttribute('aria-pressed','true'));
+  $('#ferr').textContent='';$('#form-title').textContent='Añadir medicamento';
+}
+function openMed(){$('#medmodal').classList.add('show');setTimeout(()=>{try{$('#f-name').focus()}catch(e){}},30);}
+function closeMed(){$('#medmodal').classList.remove('show');}
+function startEdit(id){
+  const m=medById(id);if(!m)return;resetForm();editing=id;
+  $('#f-name').value=m.name;$('#f-via').value=m.via;$('#f-dose').value=m.dose;$('#f-notes').value=m.notes;
+  $('#f-quick').value=String(m.cada);setSlots(m.slots);
+  document.querySelectorAll('.dt').forEach(b=>b.setAttribute('aria-pressed',m.days.includes(+b.dataset.day)));
+  $('#form-title').textContent='Editar medicamento';openMed();
+}
+$('#b-add').addEventListener('click',()=>{resetForm();openMed();});
+$('#b-cancel').addEventListener('click',()=>{resetForm();closeMed();});
+$('#medmodal').addEventListener('click',e=>{if(e.target.id==='medmodal'){resetForm();closeMed();}});
+function saveMed(){
+  const name=$('#f-name').value.trim();
+  const slots=[...document.querySelectorAll('#f-slots input:checked')].map(i=>+i.value);
+  const days=[...document.querySelectorAll('.dt')].filter(b=>b.getAttribute('aria-pressed')==='true').map(b=>+b.dataset.day);
+  const err=!name?'Escribe el nombre del medicamento.':!slots.length?'Marca al menos un momento del día, o elige una pauta («cada 24 horas», «cada 12 horas»…).':!days.length?'Marca al menos un día de la semana.':'';
+  if(err){$('#ferr').textContent=err;return;}
+  const old=editing&&medById(editing);
+  const m=clean({id:old?old.id:newMedId(),name,via:$('#f-via').value,dose:$('#f-dose').value.trim(),cada:+$('#f-quick').value,slots,days,notes:$('#f-notes').value.trim(),color:old?old.color:PAL[S.meds.length%PAL.length]});
+  if(old)S.meds=S.meds.map(x=>x.id===old.id?m:x);else{S.meds.push(m);}
+  resetForm();closeMed();save();renderAll();toast(old?'Cambios guardados.':'Medicamento añadido. Ya aparece en tu pastillero.');
+}
+$('#b-save').addEventListener('click',saveMed);
+$('#medform').addEventListener('submit',e=>{e.preventDefault();saveMed();});
+document.addEventListener('click',e=>{
+  const ed=e.target.closest('[data-edit]');if(ed){delId=null;startEdit(+ed.dataset.edit);return;}
+  const del=e.target.closest('[data-del]');if(del){delId=+del.dataset.del;renderList();return;}
+  if(e.target.closest('[data-del-no]')){delId=null;renderList();return;}
+  const ok=e.target.closest('[data-del-ok]');
+  if(ok){const id=+ok.dataset.delOk;S.meds=S.meds.filter(m=>m.id!==id);delId=null;save();renderAll();toast('Medicamento eliminado.');}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if($('#medmodal').classList.contains('show')){resetForm();closeMed();}
+  $('#imgmodal').classList.remove('show');
+});
+$('#nombre').addEventListener('input',e=>{S.nombre=e.target.value;save();document.querySelectorAll('.pchip').forEach(b=>{if(+b.dataset.pat===S.id)b.textContent='👤 '+pname(S);});});
+$('#p-add').addEventListener('click',()=>{
+  const id=Math.max(0,...DB.pats.map(p=>p.id))+1;DB.pats.push({id,nombre:'',meds:[]});
+  switchPat(id);showTab('pastillero');setTimeout(()=>{try{$('#nombre').focus()}catch(e){}},30);toast('Persona añadida. Escribe su nombre y añade sus medicamentos.');
+});
+$('#pbar').addEventListener('click',e=>{
+  const c=e.target.closest('[data-pat]');if(c){switchPat(+c.dataset.pat);return;}
+  if(e.target.id==='p-del'){pdel=true;renderPeople();return;}
+  if(e.target.id==='p-delno'){pdel=false;renderPeople();return;}
+  if(e.target.id==='p-delok'){DB.pats=DB.pats.filter(p=>p.id!==S.id);pdel=false;DB.cur=DB.pats[0].id;S=DB.pats[0];resetForm();save();renderPeople();renderAll();toast('Persona eliminada.');}
+});
+
+/* ---------- imagen JPG ---------- */
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),3500);}
+function loadImg(src){return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src;});}
+function svgURL(m){return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(icon(VIAS[m.via][1],m.color,64).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" '));}
+async function makeImage(){
+  const imgs={};await Promise.all(S.meds.map(async m=>{imgs[m.id]=await loadImg(svgURL(m));}));
+  const W=1400,M=24,LW=170,G=6,CW=(W-2*M-LW-G*7)/7,IH=38,IG=4;
+  const F='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  const box=S.meds.filter(inBox),otros=S.meds.filter(m=>!inBox(m));
+  const cell=(list,d,si)=>list.filter(m=>m.days.includes(d)&&m.slots.includes(si));
+  const rowH=(list,si)=>{let n=0;for(let d=0;d<7;d++)n=Math.max(n,cell(list,d,si).length);return Math.max(70,12+n*IH+Math.max(0,n-1)*IG);};
+  const secH=list=>46+8+34+G+SLOTS.reduce((t,_,si)=>t+rowH(list,si)+G,0)+24;
+  const TOP=84,H=TOP+secH(box)+(otros.length?secH(otros):0)+40;
+  const cv=document.createElement('canvas');cv.width=W*2;cv.height=H*2;
+  const c=cv.getContext('2d');c.scale(2,2);
+  const rr=(x,y,w,h,r)=>{c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();};
+  const fit=(t,mw)=>{if(c.measureText(t).width<=mw)return t;while(t.length>1&&c.measureText(t+'…').width>mw)t=t.slice(0,-1);return t+'…';};
+  c.fillStyle='#fff';c.fillRect(0,0,W,H);
+  const nom=(S.nombre||'').trim();
+  c.fillStyle='#0b5f6a';c.font=`700 26px ${F}`;c.fillText('Pastillero semanal'+(nom?` · ${nom}`:''),M,44);
+  c.fillStyle='#5b6b7c';c.font=`400 14px ${F}`;
+  c.fillText(new Date().toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}),M,68);
+  let y=TOP;
+  const section=(list,title,b1,b2)=>{
+    c.fillStyle='#1c2733';c.font=`700 18px ${F}`;c.fillText(title,M,y+24);y+=46;
+    const bh=secH(list)-46-14;
+    const gr=c.createLinearGradient(0,y,0,y+bh);gr.addColorStop(0,b1);gr.addColorStop(1,b2);
+    c.fillStyle=gr;rr(M,y,W-2*M,bh,16);c.fill();
+    let yy=y+8;
+    for(let d=0;d<7;d++){const x=M+LW+d*(CW+G)+2;c.fillStyle='#0f7c8a';rr(x,yy,CW-4,34,8);c.fill();c.fillStyle='#fff';c.font=`700 15px ${F}`;c.textAlign='center';c.fillText(DAYS[d],x+(CW-4)/2,yy+22);c.textAlign='left';}
+    yy+=34+G;
+    SLOTS.forEach((sl,si)=>{
+      const h=rowH(list,si);
+      c.textAlign='left';c.textBaseline='middle';c.font=`24px ${F}`;c.fillStyle='#1c2733';c.fillText(sl.e,M+10,yy+h/2);
+      c.font=`700 15px ${F}`;c.fillStyle='#1c2733';c.fillText(sl.n.toUpperCase(),M+44,yy+h/2);c.textBaseline='alphabetic';
+      for(let d=0;d<7;d++){
+        const x=M+LW+d*(CW+G)+2,cw=CW-4;
+        c.fillStyle='#f3f7fb';rr(x,yy,cw,h,10);c.fill();c.strokeStyle='#d7e0ea';c.lineWidth=1;c.stroke();
+        cell(list,d,si).forEach((m,i)=>{
+          const iy=yy+6+i*(IH+IG);
+          c.fillStyle='#fff';rr(x+5,iy,cw-10,IH,7);c.fill();c.strokeStyle='#c9d5e1';c.stroke();
+          if(imgs[m.id])c.drawImage(imgs[m.id],x+8,iy+7,24,24);
+          c.fillStyle='#1c2733';c.font=`600 13px ${F}`;c.fillText(fit(m.name,cw-10-40),x+36,iy+17);
+          if(m.dose){c.fillStyle='#5b6b7c';c.font=`400 11px ${F}`;c.fillText(fit(m.dose,cw-10-40),x+36,iy+31);}
+        });
+      }
+      yy+=h+G;
+    });
+    y+=bh+14;
+  };
+  section(box,'Pastillero','#e7eef6','#dbe5ef');
+  if(otros.length)section(otros,'Otros tratamientos (fuera del pastillero)','#f7efe2','#f0e5d1');
+  c.fillStyle='#8896a5';c.font=`400 12px ${F}`;c.fillText('Sigue siempre las indicaciones de tu médico, tu enfermera y tu farmacéutico.',M,H-16);
+  return cv;
+}
+async function showImage(){
+  if(!S.meds.length){toast('Añade algún medicamento antes de guardar la imagen.');return;}
+  const cv=await makeImage();
+  const url=cv.toDataURL('image/jpeg',0.92);
+  lastBlob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.92));
+  $('#jpgimg').src=url;
+  const slug=t=>t.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase();
+  const a=$('#jpgdl');a.href=url;a.download=['pastillero',slug(S.nombre||'')].filter(Boolean).join('-')+'.jpg';
+  $('#imgmodal').classList.add('show');
+}
+$('#b-img').addEventListener('click',()=>{showImage().catch(()=>toast('No se ha podido generar la imagen.'));});
+$('#jpgclose').addEventListener('click',()=>$('#imgmodal').classList.remove('show'));
+$('#imgmodal').addEventListener('click',e=>{if(e.target.id==='imgmodal')$('#imgmodal').classList.remove('show');});
+$('#b-share').addEventListener('click',async()=>{
+  try{
+    const f=new File([lastBlob],$('#jpgdl').download,{type:'image/jpeg'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Pastillero semanal'});}
+    else{toast('Tu navegador no permite compartirla desde aquí: usa «Descargar JPG» o mantén pulsada la imagen.');}
+  }catch(e){if(e&&e.name!=='AbortError')toast('No se ha podido compartir: usa «Descargar JPG» o mantén pulsada la imagen.');}
+});
+
+/* ---------- inicio ---------- */
+load();buildForm();resetForm();renderPeople();renderAll();
+</script>
+</body>
+</html>
